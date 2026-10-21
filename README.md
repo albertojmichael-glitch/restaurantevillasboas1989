@@ -19,11 +19,11 @@ dotnet run
 
 Abra o terminal (PowerShell ou Prompt de Comando) dentro da pasta `PizzariaTycoon` onde você salvou os arquivos e execute:
 
+
 ```bash
-# 1. Para compilar e jogar imediatamente:
 dotnet run
 
-# 2. Para inicializar o repositório Git e subir para o seu GitHub:
+# Para inicializar o repositório Git e subir para o seu GitHub:
 git init
 git add .
 git commit -m "feat: sistema completo Pizzaria Tycoon em C# com suporte a mouse"
