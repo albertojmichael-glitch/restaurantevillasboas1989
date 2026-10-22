@@ -1,0 +1,32 @@
+name: Gerar Executavel Windows
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Baixar codigo do repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar .NET 8 na nuvem
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Garantir arquivo .csproj caso nao exista no repositorio
+      shell: pwsh
+      run: |
+        if (-not (Get-ChildItem -Filter *.csproj)) {
+          @"
+        <Project Sdk="Microsoft.NET.Sdk">
+          <PropertyGroup>
+            <OutputType>Exe</OutputType>
+            <TargetFramework>net8.0</TargetFramework>
+            <ImplicitUsings>enable</ImplicitUsings>
+            <Nullable>disable</Nullable>
+          </
