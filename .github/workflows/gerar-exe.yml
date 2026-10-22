@@ -1,0 +1,28 @@
+name: Gerar Executavel Windows
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Baixar codigo do repositorio
+      uses: actions/checkout@v4
+
+    - name: Configurar .NET 8 na nuvem
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Compilar arquivo .exe unico e independente
+      run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./saida_exe
+
+    - name: Disponibilizar .exe para download
+      uses: actions/upload-artifact@v4
+      with:
+        name: PizzariaTycoon-Executavel
+        path: ./saida_exe/
