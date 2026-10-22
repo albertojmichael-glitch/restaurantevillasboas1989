@@ -68,29 +68,30 @@ namespace PizzariaTycoon
 
         static void Main(string[] args)
         {
-            // Habilita acentuação completa (UTF-8) no terminal (Corrige Bug 9)
             Console.OutputEncoding = Encoding.UTF8;
             Console.InputEncoding = Encoding.UTF8;
-            Console.Title = "Pizzaria Tycoon - Edição Completa";
+            Console.Title = "Pizzaria Tycoon - Edição Expandida (Use Ctrl + Roda do Mouse para Zoom)";
             Console.CursorVisible = false;
+
+            if (OperatingSystem.IsWindows())
+            {
+                try
+                {
+                    int targetW = Math.Min(150, Console.LargestWindowWidth);
+                    int targetH = Math.Min(38, Console.LargestWindowHeight);
+                    Console.SetBufferSize(Math.Max(targetW, Console.BufferWidth), Math.Max(targetH, Console.BufferHeight));
+                    Console.SetWindowSize(targetW, targetH);
+                }
+                catch { }
+            }
+
             Console.Clear();
 
             var engine = new GameEngine();
             var ui = new ConsoleUI(engine);
 
-            // Executa API de Mouse nativa apenas no Windows; usa fallback multiplataforma em Linux/macOS (Corrige Bug 7)
             if (OperatingSystem.IsWindows())
             {
-                try
-                {
-                    if (Console.WindowWidth < 120 || Console.WindowHeight < 30)
-                    {
-                        Console.SetWindowSize(120, 30);
-                        Console.SetBufferSize(120, 30);
-                    }
-                }
-                catch { }
-
                 RunWindowsMouseAndKeyboardLoop(ui);
             }
             else
