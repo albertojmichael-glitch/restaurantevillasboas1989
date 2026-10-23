@@ -297,48 +297,31 @@ namespace PizzariaTycoon
             int maxW = Math.Min(ScreenWidth, Console.BufferWidth);
             int maxH = Math.Min(ScreenHeight, Console.BufferHeight);
 
-            var sb = new StringBuilder();
             ConsoleColor curFg = (ConsoleColor)(-1);
             ConsoleColor curBg = (ConsoleColor)(-1);
 
             for (int y = 0; y < maxH; y++)
             {
-                int limitW = (y == maxH - 1) ? maxW - 1 : maxW;
-                int x = 0;
-
-                while (x < limitW)
+                for (int x = 0; x < maxW; x++)
                 {
-                    var n = _backBuffer[x, y];
-                    var p = _frontBuffer[x, y];
+                    // Evita escrever na última célula (provoca rolagem do console)
+                    if (y == maxH - 1 && x == maxW - 1) continue;
 
-                    if (!_forceFullRedraw && n.Char == p.Char && n.Fg == p.Fg && n.Bg == p.Bg)
-                    {
-                        x++;
+                    var next = _backBuffer[x, y];
+                    var prev = _frontBuffer[x, y];
+
+                    if (!_forceFullRedraw && next.Char == prev.Char && next.Fg == prev.Fg && next.Bg == prev.Bg)
                         continue;
-                    }
-
-                    int start = x;
-                    sb.Clear();
-                    ConsoleColor fg = n.Fg, bg = n.Bg;
-
-                    while (x < limitW)
-                    {
-                        var a = _backBuffer[x, y];
-                        var b = _frontBuffer[x, y];
-                        bool changed = _forceFullRedraw || a.Char != b.Char || a.Fg != b.Fg || a.Bg != b.Bg;
-                        if (!changed || a.Fg != fg || a.Bg != bg) break;
-
-                        sb.Append(a.Char);
-                        _frontBuffer[x, y] = a;
-                        x++;
-                    }
 
                     try
                     {
-                        Console.SetCursorPosition(start, y);
-                        if (fg != curFg) { Console.ForegroundColor = fg; curFg = fg; }
-                        if (bg != curBg) { Console.BackgroundColor = bg; curBg = bg; }
-                        Console.Write(sb.ToString());
+                        // Posiciona o cursor a cada célula: robusto contra
+                        // diferenças de largura de caracteres entre terminais.
+                        Console.SetCursorPosition(x, y);
+                        if (next.Fg != curFg) { Console.ForegroundColor = next.Fg; curFg = next.Fg; }
+                        if (next.Bg != curBg) { Console.BackgroundColor = next.Bg; curBg = next.Bg; }
+                        Console.Write(next.Char);
+                        _frontBuffer[x, y] = next;
                     }
                     catch { }
                 }
