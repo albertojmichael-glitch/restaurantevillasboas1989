@@ -15,6 +15,7 @@ namespace PizzariaTycoon
         public List<string> OpcoesBancada { get; set; } = new List<string>();
         public string FalaDoCliente { get; set; }
         public bool EClienteCritico { get; set; }
+        public bool EPedidoSazonalBonus { get; set; }
         public int SorteioGorjetaBase { get; set; }
     }
 
@@ -87,26 +88,30 @@ namespace PizzariaTycoon
         private readonly Random _rng = new Random();
         private const string SaveFileName = "savegame.json";
         private const double LimiteFalenciaImediata = -500.0;
+        public const string SenhaDesenvolvedor = "xit89";
 
         public int Diversao { get; private set; }
+
+        // Modo Desenvolvedor (Aba Terminal)
+        public bool TerminalDesbloqueado { get; private set; } = false;
+        public string InputSenhaTerminal { get; set; } = "";
 
         // Modais de Tutorial e Resumo Diário
         public bool ExibirTutorial { get; set; } = true;
         public DailySummaryReport ResumoDiarioAtivo { get; private set; } = null;
 
-        // Rastreadores do Dia Atual para o Resumo Diário
         private double _receitaAcumuladaDia = 0;
         private double _despesaAcumuladaDia = 0;
-        private double _reputacaoInicioDia = 3.0;
+        private double _reputacaoInicioDia = 3.2;
 
-        // Calendário Real com DateTime
+        // Calendário Real
         public int NivelAtual { get; private set; } = 1;
         public DateTime DataAtual { get; private set; } = new DateTime(2026, 1, 7);
         public int DiaSemana { get; private set; } = 1;
         public int MesesJogados { get; private set; } = 1;
         public string DataHojeFormatada => DataAtual.ToString("dd/MM/yyyy");
 
-        // Escassez de Ações Diárias e Mensais
+        // Escassez de Ações
         public int AcoesMaximasDia => 8 + Math.Min(6, UpgForno / 2);
         public int AcoesRestantesDia { get; private set; }
         public int AcoesRealizadasNoMes { get; private set; } = 0;
@@ -114,22 +119,23 @@ namespace PizzariaTycoon
         public int LimiteAcoesNoMes => 16 + (TotalUpgrades / 8);
 
         // Finanças e Reputação
-        public double Dinheiro { get; private set; } = 1000.0;
-        public double Reputacao { get; private set; } = 3.0;
+        public double Dinheiro { get; private set; } = 1100.0;
+        public double Reputacao { get; private set; } = 3.2;
         public int PedidosPerfeitosTotal { get; private set; } = 0;
         public int RecordePontuacao { get; private set; } = 0;
 
-        // Estado do Jogo
+        // Eventos Expandidos
         public bool GameOver { get; private set; } = false;
         public bool JogoVencido { get; private set; } = false;
         public string MotivoFimDeJogo { get; private set; } = "";
         public string UltimaMensagem { get; set; } = "Bem-vindo! Clique nos botões com o mouse ou use o teclado.";
         public string EventoDoDiaDescricao { get; private set; } = "Expediente Normal";
         private string _eventoAtivoCodigo = "NORMAL";
+        public string IngredienteEmFaltaOuCaro { get; private set; } = "";
 
         // Recursos e Upgrades Nomeados
         public int Funcionarios { get; private set; } = 0;
-        public int Limpeza { get; private set; } = 3;
+        public int Limpeza { get; private set; } = 4;
         public int UpgForno { get; private set; } = 0;
         public int UpgGeladeira { get; private set; } = 0;
         public int UpgBalcao { get; private set; } = 0;
@@ -146,11 +152,11 @@ namespace PizzariaTycoon
         public HashSet<string> PratosAtivosNoCardapio { get; private set; } = new HashSet<string>();
         public int CapacidadeMaximaEstoque => 15 + (UpgGeladeira * 8);
 
-        // Banco
+        // Banco Rebalanceado (3% a.m.)
         public double DividaTotalBanco { get; private set; } = 0.0;
         public int MesesRestantesDivida { get; private set; } = 0;
-        public double TaxaJurosMensal => 0.04;
-        public double LimiteCreditoBanco => Math.Round(Reputacao * NivelAtual * 2000.0, 2);
+        public double TaxaJurosMensal => 0.03;
+        public double LimiteCreditoBanco => Math.Round(Reputacao * NivelAtual * 2200.0, 2);
         public double ParcelaMensalBanco => MesesRestantesDivida > 0 ? Math.Round(DividaTotalBanco / MesesRestantesDivida, 2) : 0;
 
         // Tarefas Ativas
@@ -176,10 +182,10 @@ namespace PizzariaTycoon
             MesesJogados = 1;
             AcoesRealizadasNoMes = 0;
             TarefasConcluidasNoMes = 0;
-            Dinheiro = 1100.0; // Começa com R$ 1.100 para os primeiros 20 min serem mais acessíveis
+            Dinheiro = 1100.0;
             Reputacao = 3.2;
             Funcionarios = 0;
-            Limpeza = 3;
+            Limpeza = 4;
             UpgForno = 0;
             UpgGeladeira = 0;
             UpgBalcao = 0;
@@ -220,10 +226,7 @@ namespace PizzariaTycoon
 
         public LevelConfig ConfigAtual => Catalog.Levels[NivelAtual - 1];
 
-        public void FecharResumoDiario()
-        {
-            ResumoDiarioAtivo = null;
-        }
+        public void FecharResumoDiario() => ResumoDiarioAtivo = null;
 
         private void ModificarDinheiro(double delta)
         {
@@ -245,17 +248,20 @@ namespace PizzariaTycoon
 
         public int ObterLimpezaIdeal()
         {
-            return ConfigAtual.MinLimpeza + (Funcionarios / 2) + (TotalUpgrades / 4) + 3;
+            return ConfigAtual.MinLimpeza + (Funcionarios / 3) + (TotalUpgrades / 5) + 3;
         }
 
         public string DiagnosticarMaiorRiscoAtual()
         {
             if (Dinheiro < 200)
-                return $"Caixa perigosamente baixo (R$ {Dinheiro:F2}). Risco de falência se errar pedidos!";
+                return $"Caixa baixo (R$ {Dinheiro:F2}). Evite gastos altos antes de entregar pedidos!";
+
+            if (Funcionarios > ConfigAtual.RecFuncionarios + 6)
+                return $"Excesso de funcionários ({Funcionarios}/{ConfigAtual.RecFuncionarios} recomendados) pesando na folha mensal!";
 
             int limpIdeal = ObterLimpezaIdeal();
             if (Limpeza < limpIdeal)
-                return $"Limpeza baixa ({Limpeza}/{limpIdeal}). Risco de multa da Vigilância Sanitária!";
+                return $"Limpeza abaixo do ideal ({Limpeza}/{limpIdeal}). Risco de autuação na Blitz Sanitária!";
 
             var baixos = Catalog.TodosIngredientes
                 .Where(i => i.Nivel <= NivelAtual && Estoque.ContainsKey(i.Nome) && Estoque[i.Nome] <= 1)
@@ -266,14 +272,10 @@ namespace PizzariaTycoon
             if (baixos.Count > 0)
                 return $"Estoque quase zerado de: {string.Join(", ", baixos)}. Aprove entregas na Aba 2!";
 
-            double precoMaxTolerado = 0.85 + (Reputacao * 0.22);
-            if (MultiplicadorPrecoPrato > precoMaxTolerado || MultiplicadorPrecoPrato > 1.15)
-                return $"Preço do cardápio alto ({MultiplicadorPrecoPrato * 100:F0}%). Clientes podem desistir!";
-
             if (DividaTotalBanco > 0 && Dinheiro < ParcelaMensalBanco)
                 return $"Saldo menor que a parcela do banco (R$ {ParcelaMensalBanco:F2}). Risco de calote!";
 
-            return "Operação Saudável! Nenhum risco crítico imediato.";
+            return "Operação equilibrada! Foque em bater as metas recomendadas do nível.";
         }
 
         public string ObterTextoProximaMeta()
@@ -332,7 +334,7 @@ namespace PizzariaTycoon
             return Math.Max(0, pts);
         }
 
-        // ================== ESCASSEZ, CALENDÁRIO E RESUMO DIÁRIO ==================
+        // ================== ESCASSEZ, CALENDÁRIO E 8 EVENTOS DINÂMICOS ==================
         private void ConsumirAcao()
         {
             if (GameOver || JogoVencido) return;
@@ -389,12 +391,15 @@ namespace PizzariaTycoon
 
                 AcoesRestantesDia = AcoesMaximasDia;
                 SortearEventoDoDia();
+                GerarNovoPedido();
             }
         }
 
-        private void SortearEventoDoDia()
+        public void SortearEventoDoDia()
         {
-            int chanceEvento = 25 + (Diversao / 2);
+            IngredienteEmFaltaOuCaro = "";
+            int chanceEvento = 35 + (Diversao / 2);
+
             if (_rng.Next(100) >= chanceEvento)
             {
                 _eventoAtivoCodigo = "NORMAL";
@@ -402,30 +407,72 @@ namespace PizzariaTycoon
                 return;
             }
 
-            int tipo = _rng.Next(4);
+            var ingsNivel = Catalog.TodosIngredientes.Where(i => i.Nivel <= NivelAtual).ToList();
+            var ingSorteado = ingsNivel[_rng.Next(ingsNivel.Count)].Nome;
+
+            int tipo = _rng.Next(8);
             switch (tipo)
             {
-                case 0:
-                    _eventoAtivoCodigo = "RUSH";
-                    AcoesRestantesDia += 3;
-                    EventoDoDiaDescricao = "DIA DE RUSH! (+3 Ações extras hoje!)";
+                case 0: // Escassez de Fornecedor
+                    _eventoAtivoCodigo = "ESCASSEZ_FORNECEDOR";
+                    IngredienteEmFaltaOuCaro = ingSorteado;
+                    EventoDoDiaDescricao = $"ESCASSEZ DE FORNECEDOR! [{ingSorteado}] não vem nas entregas hoje e entregas trazem menos unidades!";
                     break;
-                case 1:
+
+                case 1: // Inflação Súbita de Insumo
+                    _eventoAtivoCodigo = "INFLACAO_INSUMO";
+                    IngredienteEmFaltaOuCaro = ingSorteado;
+                    EventoDoDiaDescricao = $"DISPARO DE PREÇO! Compra emergencial de [{ingSorteado}] custa o TRIPLO hoje (mas pratos pagam +15%)!";
+                    break;
+
+                case 2: // Praga na Cozinha
+                    _eventoAtivoCodigo = "PRAGA";
+                    int perdaLimp = Math.Min(Limpeza, 2 + NivelAtual);
+                    Limpeza -= perdaLimp;
+                    if (Estoque.ContainsKey(ingSorteado))
+                        Estoque[ingSorteado] = Math.Max(0, Estoque[ingSorteado] - 2);
+                    EventoDoDiaDescricao = $"PROBLEMA DE PRAGAS! Roedores reduziram a Limpeza em -{perdaLimp} e estragaram 2 un. de [{ingSorteado}]!";
+                    break;
+
+                case 3: // Blitz da Vigilância Sanitária
+                    _eventoAtivoCodigo = "BLITZ_SANITARIA";
+                    int ideal = ObterLimpezaIdeal();
+                    if (Limpeza >= ideal)
+                    {
+                        AjustarReputacao(+0.25);
+                        EventoDoDiaDescricao = $"BLITZ SANITÁRIA! Cozinha aprovada com louvor ({Limpeza}/{ideal} de limpeza)! Ganhou +0.25* de Reputação!";
+                    }
+                    else
+                    {
+                        EventoDoDiaDescricao = $"BLITZ SANITÁRIA! Fiscais encontraram limpeza abaixo do ideal ({Limpeza}/{ideal})!";
+                        DispararProcesso("Blitz da Vigilância Sanitária!", "Inspeção surpresa flagrou falta de higiene adequada no turno.", ConfigAtual.PrecoMedioPrato * 4.5);
+                    }
+                    break;
+
+                case 4: // Clima: Frente Fria (Inverno)
+                    _eventoAtivoCodigo = "CLIMA_INVERNO";
+                    EventoDoDiaDescricao = "FRENTE FRIA (INVERNO)! Pratos quentes (Macarrão, Lasanha, Yakisoba, Risoto) dão +35% de lucro hoje!";
+                    break;
+
+                case 5: // Clima: Onda de Calor (Verão)
+                    _eventoAtivoCodigo = "CLIMA_VERAO";
+                    EventoDoDiaDescricao = "ONDA DE CALOR (VERÃO)! Pratos leves (Salada, Sanduíche, Sushi, Açaí) dão +35% de lucro hoje!";
+                    break;
+
+                case 6: // Menu Especial de Evento
+                    _eventoAtivoCodigo = "MENU_EVENTO";
+                    AcoesRestantesDia += 2;
+                    EventoDoDiaDescricao = "NOITE DO CHEF! Pratos Especiais/Gourmet dão +40% de bônus e você ganhou +2 Ações hoje!";
+                    break;
+
+                case 7: // Visita do Crítico Gastronômico
                     _eventoAtivoCodigo = "CRITICO";
                     EventoDoDiaDescricao = "VISITA DO CRÍTICO! (Próximo pedido vale +0.5 Estrela e 2x Valor!)";
-                    break;
-                case 2:
-                    _eventoAtivoCodigo = "GREVE";
-                    EventoDoDiaDescricao = "GREVE DE CAMINHONEIROS! (Entregas custam R$ 80, mas pratos pagam +20%)";
-                    break;
-                case 3:
-                    _eventoAtivoCodigo = "FESTIVAL";
-                    EventoDoDiaDescricao = "FESTIVAL GASTRONÔMICO! (Gorjetas do Balcão e Diversão dobradas hoje!)";
                     break;
             }
         }
 
-        // ================== CARDÁPIO E COZINHA DETERMINÍSTICA ==================
+        // ================== CARDÁPIO E COZINHA ==================
         public void AlternarPratoNoCardapio(string nomePrato)
         {
             if (PratosAtivosNoCardapio.Contains(nomePrato))
@@ -449,18 +496,25 @@ namespace PizzariaTycoon
         public double CalcularValorVendaPrato()
         {
             double basePrice = ConfigAtual.PrecoMedioPrato * MultiplicadorPrecoPrato;
+
+            // Funcionários rendem bem até a meta recomendada; acima de 1.5x da meta recomendada, o ganho estabiliza
+            int funcEfetivos = Math.Min(Funcionarios, (int)(ConfigAtual.RecFuncionarios * 1.5) + 4);
             double fatorSalario = Math.Min(1.25, MultiplicadorSalario);
-            double bonusFuncionarios = Math.Sqrt(Funcionarios) * (ConfigAtual.PrecoMedioPrato * 0.18) * fatorSalario;
+            double bonusFuncionarios = Math.Sqrt(funcEfetivos) * (ConfigAtual.PrecoMedioPrato * 0.18) * fatorSalario;
 
             int sementeGorjeta = PedidoAtual != null ? PedidoAtual.SorteioGorjetaBase : 12;
-            double multFestival = _eventoAtivoCodigo == "FESTIVAL" ? 2.0 : 1.0;
             double fatorDiversao = 1.0 + (Diversao / 500.0);
             double bonusUpgrade = TotalUpgrades > 0
-                ? (sementeGorjeta + (UpgBalcao * 2.5) + (TotalUpgrades * 0.4)) * multFestival * fatorDiversao
+                ? (sementeGorjeta + (UpgBalcao * 3.0) + (TotalUpgrades * 0.5)) * fatorDiversao
                 : 0;
 
-            double multGreve = _eventoAtivoCodigo == "GREVE" ? 1.20 : 1.0;
-            return Math.Round((basePrice + bonusFuncionarios + bonusUpgrade) * multGreve, 2);
+            double multSazonal = 1.0;
+            if (PedidoAtual != null && PedidoAtual.EPedidoSazonalBonus)
+                multSazonal = 1.35;
+            else if (_eventoAtivoCodigo == "INFLACAO_INSUMO")
+                multSazonal = 1.15;
+
+            return Math.Round((basePrice + bonusFuncionarios + bonusUpgrade) * multSazonal, 2);
         }
 
         public void GerarNovoPedido()
@@ -482,7 +536,6 @@ namespace PizzariaTycoon
             var recheioCliente = recheioPadrao.Where(i => !excluidos.Contains(i)).ToList();
 
             string instrucaoTroca = "";
-            // No Nível 1 com menos de 3 pratos feitos, evita inversão de ordem para facilitar o aprendizado!
             bool podeInverter = !(NivelAtual == 1 && PedidosPerfeitosTotal < 3);
             if (podeInverter && recheioCliente.Count >= 2 && _rng.Next(100) < 45)
             {
@@ -491,7 +544,7 @@ namespace PizzariaTycoon
                 string itemB = recheioCliente[idx + 1];
                 recheioCliente[idx] = itemB;
                 recheioCliente[idx + 1] = itemA;
-                instrucaoTroca = $" | Ordem especial: coloque [{itemB}] logo antes de [{itemA}]!";
+                instrucaoTroca = $" | Ordem especial: [{itemB}] logo antes de [{itemA}]!";
             }
 
             var ordemFinal = new List<string> { receita.IngredienteBaseTopo };
@@ -516,8 +569,12 @@ namespace PizzariaTycoon
                 opcoes.Add(d);
             }
 
+            bool bonusSazonal = (_eventoAtivoCodigo == "CLIMA_INVERNO" && receita.EstacaoFavorita == "INVERNO") ||
+                                (_eventoAtivoCodigo == "CLIMA_VERAO" && receita.EstacaoFavorita == "VERAO") ||
+                                (_eventoAtivoCodigo == "MENU_EVENTO" && (receita.EPratoDeEvento || receita.EstacaoFavorita == "EVENTO"));
+
             bool critico = _eventoAtivoCodigo == "CRITICO";
-            string prefixoCritico = critico ? "[CRÍTICO] " : "";
+            string prefixo = critico ? "[CRÍTICO] " : (bonusSazonal ? "[BÔNUS SAZONAL +35%] " : "");
             string textoSem = excluidos.Count > 0 ? $" SEM {string.Join(" e SEM ", excluidos)}" : "";
 
             PedidoAtual = new CustomerOrder
@@ -527,8 +584,9 @@ namespace PizzariaTycoon
                 IngredientesExcluidos = excluidos,
                 OpcoesBancada = opcoes.OrderBy(_ => _rng.Next()).ToList(),
                 EClienteCritico = critico,
+                EPedidoSazonalBonus = bonusSazonal,
                 SorteioGorjetaBase = _rng.Next(5, 21),
-                FalaDoCliente = $"{prefixoCritico}\"Quero {receita.Nome} (ordem padrão da Aba 3){textoSem}!\"{instrucaoTroca}"
+                FalaDoCliente = $"{prefixo}\"Quero {receita.Nome}{textoSem}!\"{instrucaoTroca}"
             };
         }
 
@@ -552,7 +610,9 @@ namespace PizzariaTycoon
 
         public void CompraEmergencialIngrediente(string ingrediente)
         {
-            double custo = 30.0 * NivelAtual;
+            double multiplicadorEvento = (_eventoAtivoCodigo == "INFLACAO_INSUMO" && ingrediente == IngredienteEmFaltaOuCaro) ? 3.0 : 1.0;
+            double custo = Math.Round(28.0 * NivelAtual * multiplicadorEvento, 2);
+
             if (Dinheiro < custo)
             {
                 UltimaMensagem = $"Saldo insuficiente para compra emergencial (R$ {custo:F2})!";
@@ -592,9 +652,9 @@ namespace PizzariaTycoon
                 return;
             }
 
-            if (MultiplicadorPrecoPrato > 1.10)
+            if (MultiplicadorPrecoPrato > 1.15)
             {
-                int chanceDesistir = (int)((MultiplicadorPrecoPrato - 1.10) * 150);
+                int chanceDesistir = (int)((MultiplicadorPrecoPrato - 1.15) * 140);
                 if (_rng.Next(100) < chanceDesistir)
                 {
                     AjustarReputacao(-0.10);
@@ -644,20 +704,19 @@ namespace PizzariaTycoon
             }
             else if (usouIngredienteContaminado)
             {
-                double multaContam = Math.Round(ConfigAtual.PrecoMedioPrato * 1.3, 2);
+                double multaContam = Math.Round(ConfigAtual.PrecoMedioPrato * 1.2, 2);
                 ModificarDinheiro(-multaContam);
-                AjustarReputacao(-0.40);
+                AjustarReputacao(-0.35);
                 TocarSom(false);
                 UltimaMensagem = $"PRATO ESTRAGADO! Ingrediente contaminado aceito na entrega causou intoxicação (-R$ {multaContam:F2})!";
-                DispararProcesso("Intoxicação Alimentar Grave!", "Cliente passou mal por ingrediente vencido/contaminado do estoque.", 500.0 * NivelAtual);
+                DispararProcesso("Intoxicação Alimentar Grave!", "Cliente passou mal por ingrediente vencido/contaminado do estoque.", 450.0 * NivelAtual);
             }
             else
             {
-                // No Nível 1 a multa é mais leve (R$ 60) para ajudar o jogador iniciante
-                double fatorMulta = NivelAtual == 1 ? 0.75 : 1.25;
+                double fatorMulta = NivelAtual == 1 ? 0.65 : (NivelAtual == 2 ? 0.85 : 1.15);
                 double multaErroPrato = Math.Round(ConfigAtual.PrecoMedioPrato * fatorMulta, 2);
                 ModificarDinheiro(-multaErroPrato);
-                AjustarReputacao(PedidoAtual.EClienteCritico ? -0.50 : -0.20);
+                AjustarReputacao(PedidoAtual.EClienteCritico ? -0.45 : -0.18);
                 TocarSom(false);
                 UltimaMensagem = $"PEDIDO ERRADO! (-R$ {multaErroPrato:F2}): {erroDetalhado}";
 
@@ -709,7 +768,7 @@ namespace PizzariaTycoon
         {
             if (cobrarTaxa)
             {
-                double taxa = _eventoAtivoCodigo == "GREVE" ? 80.0 : 40.0;
+                double taxa = 35.0;
                 ModificarDinheiro(-taxa);
                 if (GameOver) return;
             }
@@ -717,11 +776,13 @@ namespace PizzariaTycoon
             InspecoesCaixaRestantes = InspecoesCaixaMaximas;
             EntregaAtual = new List<DeliveryItemRecord>();
 
-            var ingredientesNivel = Catalog.TodosIngredientes.Where(i => i.Nivel <= NivelAtual).ToList();
+            var ingredientesNivel = Catalog.TodosIngredientes
+                .Where(i => i.Nivel <= NivelAtual && (_eventoAtivoCodigo != "ESCASSEZ_FORNECEDOR" || i.Nome != IngredienteEmFaltaOuCaro))
+                .ToList();
 
             for (int i = 0; i < 7; i++)
             {
-                bool seraValido = _rng.Next(100) < 58;
+                bool seraValido = _rng.Next(100) < 60;
                 var info = ingredientesNivel[_rng.Next(ingredientesNivel.Count)];
 
                 string nomeNota = info.Nome;
@@ -730,7 +791,8 @@ namespace PizzariaTycoon
                 string cidade = Catalog.CidadesValidas[_rng.Next(Catalog.CidadesValidas.Count)];
                 string dataNota = DataHojeFormatada;
                 string lote = $"LT-{_rng.Next(100, 999)}";
-                int qtd = _rng.Next(3, 6) + (UpgLogistica / 4);
+                int redEscassez = _eventoAtivoCodigo == "ESCASSEZ_FORNECEDOR" ? 1 : 0;
+                int qtd = Math.Max(2, _rng.Next(3, 6) + (UpgLogistica / 3) - redEscassez);
                 string temp = info.ExigeRefrigeracao ? $"{_rng.Next(1, 5)}°C (Frio)" : "22°C (Amb)";
                 string motivo = "OK";
 
@@ -859,14 +921,14 @@ namespace PizzariaTycoon
 
             if (erros == 0)
             {
-                double bonus = 75.0 + (NivelAtual * 25.0);
+                double bonus = 80.0 + (NivelAtual * 25.0);
                 ModificarDinheiro(bonus);
                 TocarSom(true);
                 UltimaMensagem = $"CONFERÊNCIA IMPECÁVEL! +{itensAdicionados} insumos no estoque e +R$ {bonus:F2} de bônus!";
             }
             else
             {
-                double multaPorItem = 20.0 * NivelAtual;
+                double multaPorItem = 18.0 * NivelAtual;
                 double multa = erros * multaPorItem;
                 ModificarDinheiro(-multa);
                 TocarSom(false);
@@ -895,7 +957,7 @@ namespace PizzariaTycoon
 
             ModificarDinheiro(-(qtdReal * custoUnit));
             Funcionarios += qtdReal;
-            UltimaMensagem = $"+{qtdReal} Funcionário(s) contratado(s)! Total: {Funcionarios}.";
+            UltimaMensagem = $"+{qtdReal} Funcionário(s) contratado(s)! Total: {Funcionarios} (Recomendado Nv.{NivelAtual}: {ConfigAtual.RecFuncionarios}).";
             VerificarSubidaDeNivel();
         }
 
@@ -919,7 +981,7 @@ namespace PizzariaTycoon
 
         public double ObterCustoUpgradeEspecifico(int nivelAtualUpg)
         {
-            return Math.Round(ConfigAtual.CustoUpgradeBase * (1.0 + (nivelAtualUpg * 0.12)), 2);
+            return Math.Round(ConfigAtual.CustoUpgradeBase * (1.0 + (nivelAtualUpg * 0.10)), 2);
         }
 
         public void ComprarUpgradeNomeado(string tipo, int lote)
@@ -969,7 +1031,7 @@ namespace PizzariaTycoon
                 UltimaMensagem = "Corte salarial excessivo fez um funcionário pedir demissão!";
                 if (_rng.Next(100) < 55)
                 {
-                    DispararProcesso("Reclamação Trabalhista!", "Ex-funcionário cobra redução salarial indevida na Justiça do Trabalho.", 650.0 * NivelAtual);
+                    DispararProcesso("Reclamação Trabalhista!", "Ex-funcionário cobra redução salarial indevida na Justiça do Trabalho.", 550.0 * NivelAtual);
                 }
             }
         }
@@ -992,7 +1054,7 @@ namespace PizzariaTycoon
 
                     foreach (var ing in Catalog.TodosIngredientes.Where(i => i.Nivel == NivelAtual))
                     {
-                        Estoque[ing.Nome] = Math.Max(Estoque[ing.Nome], 5);
+                        Estoque[ing.Nome] = Math.Max(Estoque[ing.Nome], 6);
                     }
                     foreach (var prato in Catalog.Pratos.Where(p => p.NivelDesbloqueio == NivelAtual))
                     {
@@ -1005,6 +1067,109 @@ namespace PizzariaTycoon
                 else break;
             }
             VerificarCondicaoVitoria();
+        }
+
+        // ================== MODO DESENVOLVEDOR (TERMINAL: SENHA xit89) ==================
+        public void TentarDesbloquearTerminal()
+        {
+            if (string.Equals(InputSenhaTerminal?.Trim(), SenhaDesenvolvedor, StringComparison.OrdinalIgnoreCase))
+            {
+                TerminalDesbloqueado = true;
+                TocarSom(true);
+                UltimaMensagem = "MODO DESENVOLVEDOR DESBLOQUEADO (xit89)! Controle total liberado.";
+            }
+            else
+            {
+                TocarSom(false);
+                UltimaMensagem = $"Senha incorreta ('{InputSenhaTerminal}')! Acesso negado ao Terminal.";
+                InputSenhaTerminal = "";
+            }
+        }
+
+        public void BloquearTerminal()
+        {
+            TerminalDesbloqueado = false;
+            InputSenhaTerminal = "";
+            UltimaMensagem = "Terminal de Desenvolvedor bloqueado.";
+        }
+
+        public void DevAlterarDinheiro(double delta)
+        {
+            Dinheiro = Math.Round(Dinheiro + delta, 2);
+            UltimaMensagem = $"[DEV] Caixa alterado em R$ {delta:F2}. Saldo atual: R$ {Dinheiro:F2}.";
+        }
+
+        public void DevDefinirDinheiro(double novoValor)
+        {
+            Dinheiro = Math.Round(novoValor, 2);
+            UltimaMensagem = $"[DEV] Caixa definido para R$ {Dinheiro:F2}.";
+        }
+
+        public void DevAlterarFuncionarios(int delta)
+        {
+            Funcionarios = Math.Max(0, Funcionarios + delta);
+            UltimaMensagem = $"[DEV] Funcionários ajustados para {Funcionarios}.";
+            VerificarSubidaDeNivel();
+        }
+
+        public void DevAlterarLimpeza(int delta)
+        {
+            Limpeza = Math.Max(0, Limpeza + delta);
+            UltimaMensagem = $"[DEV] Limpeza ajustada para {Limpeza}.";
+            VerificarSubidaDeNivel();
+        }
+
+        public void DevAlterarUpgrades(string tipo, int delta)
+        {
+            if (tipo == "TODOS")
+            {
+                UpgForno = Math.Max(0, UpgForno + delta);
+                UpgGeladeira = Math.Max(0, UpgGeladeira + delta);
+                UpgBalcao = Math.Max(0, UpgBalcao + delta);
+                UpgLogistica = Math.Max(0, UpgLogistica + delta);
+            }
+            else if (tipo == "FORNO") UpgForno = Math.Max(0, UpgForno + delta);
+            else if (tipo == "GELADEIRA") UpgGeladeira = Math.Max(0, UpgGeladeira + delta);
+            else if (tipo == "BALCAO") UpgBalcao = Math.Max(0, UpgBalcao + delta);
+            else if (tipo == "LOGISTICA") UpgLogistica = Math.Max(0, UpgLogistica + delta);
+
+            UltimaMensagem = $"[DEV] Upgrades [{tipo}] alterados em {delta}. Total de Upgrades: {TotalUpgrades}.";
+            VerificarSubidaDeNivel();
+        }
+
+        public void DevAlterarReputacao(double delta)
+        {
+            AjustarReputacao(delta);
+            UltimaMensagem = $"[DEV] Reputação ajustada para {Reputacao:F1}*.";
+        }
+
+        public void DevAlterarNivel(int delta)
+        {
+            NivelAtual = Math.Clamp(NivelAtual + delta, 1, 5);
+            foreach (var ing in Catalog.TodosIngredientes.Where(i => i.Nivel <= NivelAtual))
+                Estoque[ing.Nome] = Math.Max(Estoque[ing.Nome], 8);
+            foreach (var prato in Catalog.Pratos.Where(p => p.NivelDesbloqueio <= NivelAtual))
+                PratosAtivosNoCardapio.Add(prato.Nome);
+
+            GerarNovoPedido();
+            UltimaMensagem = $"[DEV] Nível forçado para Nível {NivelAtual} ({ConfigAtual.Titulo}).";
+        }
+
+        public void DevEncherEstoqueTotal()
+        {
+            foreach (var ing in Catalog.TodosIngredientes)
+            {
+                Estoque[ing.Nome] = CapacidadeMaximaEstoque;
+                EstoqueContaminado[ing.Nome] = 0;
+            }
+            UltimaMensagem = $"[DEV] Todos os 96 ingredientes abastecidos no máximo ({CapacidadeMaximaEstoque} un.) e descontaminados!";
+        }
+
+        public void DevPerdoarDivida()
+        {
+            DividaTotalBanco = 0;
+            MesesRestantesDivida = 0;
+            UltimaMensagem = "[DEV] Dívida bancária zerada!";
         }
 
         // ================== BANCO ==================
@@ -1020,7 +1185,7 @@ namespace PizzariaTycoon
             DividaTotalBanco = Math.Round(DividaTotalBanco + valorSolicitado, 2);
             if (MesesRestantesDivida <= 0) MesesRestantesDivida = 12;
 
-            UltimaMensagem = $"Empréstimo de R$ {valorSolicitado:F2} recebido! Juros de 4% ao mês sobre o saldo devedor (quitar antes economiza!).";
+            UltimaMensagem = $"Empréstimo de R$ {valorSolicitado:F2} recebido! Juros de 3% ao mês sobre o saldo devedor (quitar antes economiza!).";
         }
 
         public void AmortizarDivida(double valor)
@@ -1060,12 +1225,12 @@ namespace PizzariaTycoon
             int limpezaNecessaria = ObterLimpezaIdeal();
             int deficit = limpezaNecessaria - Limpeza;
 
-            if (deficit > 0 && _rng.Next(100) < (deficit * 8))
+            if (deficit > 0 && _rng.Next(100) < (deficit * 7))
             {
                 DispararProcesso(
                     "Autuação da Vigilância Sanitária!",
                     "A sujeira acumulada pelo movimento do restaurante gerou multa.",
-                    ConfigAtual.PrecoMedioPrato * 5.0
+                    ConfigAtual.PrecoMedioPrato * 4.5
                 );
             }
         }
@@ -1112,7 +1277,7 @@ namespace PizzariaTycoon
             }
             else
             {
-                AjustarReputacao(-0.30);
+                AjustarReputacao(-0.25);
                 TocarSom(false);
                 double condenacao = proc.ValorCausa * 1.0;
                 ModificarDinheiro(-condenacao);
@@ -1125,7 +1290,7 @@ namespace PizzariaTycoon
         public double CalcularDespesaMensalFixa()
         {
             double sal = Funcionarios * ConfigAtual.CustoPorFuncionario * MultiplicadorSalario;
-            double limp = Limpeza * (ConfigAtual.CustoPorLimpeza * 0.20);
+            double limp = Limpeza * (ConfigAtual.CustoPorLimpeza * 0.18);
             return Math.Round(ConfigAtual.CustoFixoMensal + sal + limp, 2);
         }
 
@@ -1153,10 +1318,10 @@ namespace PizzariaTycoon
                 }
                 else
                 {
-                    DividaTotalBanco = Math.Round(DividaTotalBanco * 1.05, 2);
-                    AjustarReputacao(-0.25);
+                    DividaTotalBanco = Math.Round(DividaTotalBanco * 1.04, 2);
+                    AjustarReputacao(-0.20);
                     TocarSom(false);
-                    UltimaMensagem = $"CALOTE MENSAL! Caixa insuficiente para pagar a parcela de R$ {parcela:F2}. Dívida acumulou juros (Restam {MesesRestantesDivida} meses)!";
+                    UltimaMensagem = $"ATRASO BANCÁRIO! Caixa insuficiente para a parcela de R$ {parcela:F2}. Dívida acumulou juros (Restam {MesesRestantesDivida} meses)!";
                 }
 
                 if (MesesRestantesDivida <= 0 && DividaTotalBanco > 1.0)

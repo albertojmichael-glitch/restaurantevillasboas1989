@@ -11,7 +11,8 @@ namespace PizzariaTycoon
         LivroReceitas = 3,
         EstoqueCatalogo = 4,
         Administracao = 5,
-        Banco = 6
+        Banco = 6,
+        Terminal = 7
     }
 
     public class ClickableZone
@@ -38,7 +39,6 @@ namespace PizzariaTycoon
 
     public class ConsoleUI
     {
-        // Tela expandida para 150x38 (adapta-se automaticamente a janelas maiores ou menores)
         public const int MaxBufferWidth = 240;
         public const int MaxBufferHeight = 80;
 
@@ -196,7 +196,6 @@ namespace PizzariaTycoon
 
             RenderHeader();
 
-            // 1. Modal de Tutorial (Primeira execução ou botão ? AJUDA)
             if (_game.ExibirTutorial)
             {
                 RenderModalTutorial();
@@ -205,7 +204,6 @@ namespace PizzariaTycoon
                 return;
             }
 
-            // 2. Modal de Intimação Judicial
             if (_game.ProcessoAtivo != null)
             {
                 RenderModalTribunal();
@@ -214,7 +212,6 @@ namespace PizzariaTycoon
                 return;
             }
 
-            // 3. Modal de Resumo Diário ao fim de cada dia
             if (_game.ResumoDiarioAtivo != null)
             {
                 RenderModalResumoDiario();
@@ -245,6 +242,9 @@ namespace PizzariaTycoon
                 case ScreenTab.Banco:
                     RenderBanco();
                     break;
+                case ScreenTab.Terminal:
+                    RenderTerminalDev();
+                    break;
             }
 
             if (IndiceBotaoFocadoTeclado >= BotoesAtivos.Count)
@@ -257,7 +257,7 @@ namespace PizzariaTycoon
         private void RenderHeader()
         {
             SafeWrite(0, 0, new string(' ', ScreenWidth), ConsoleColor.White, ConsoleColor.DarkBlue);
-            SafeWrite(2, 0, $"PIZZARIA TYCOON | Nv.{_game.NivelAtual} ({_game.ConfigAtual.Titulo}) | Reputação: {_game.Reputacao:F1}* | Data: {_game.DataHojeFormatada} (Dia {_game.DiaSemana}/4) | Ações Hoje: {_game.AcoesRestantesDia}/{_game.AcoesMaximasDia}", ConsoleColor.White, ConsoleColor.DarkBlue);
+            SafeWrite(2, 0, $"PIZZARIA TYCOON | Nv.{_game.NivelAtual} ({_game.ConfigAtual.Titulo}) | Reputação: {_game.Reputacao:F1}* | Data: {_game.DataHojeFormatada} (Dia {_game.DiaSemana}/4) | Ações: {_game.AcoesRestantesDia}/{_game.AcoesMaximasDia}", ConsoleColor.White, ConsoleColor.DarkBlue);
 
             SafeWrite(0, 1, new string(' ', ScreenWidth), ConsoleColor.White, ConsoleColor.DarkBlue);
             SafeWrite(2, 1, $"CAIXA: R$ {_game.Dinheiro:F2} | Folha/Mês: R$ {_game.CalcularDespesaMensalFixa():F2} | Func:{_game.Funcionarios} | Limp:{_game.Limpeza}/{_game.ObterLimpezaIdeal()} | Upg:{_game.TotalUpgrades} | Fun:{_game.Diversao}", ConsoleColor.White, ConsoleColor.DarkBlue);
@@ -280,7 +280,7 @@ namespace PizzariaTycoon
             SafeWrite(x + 3, y + 1, "=== GUIA RÁPIDO DO PROPRIETÁRIO (COMO SOBREVIVER AOS PRIMEIROS 20 MINUTOS) ===", ConsoleColor.Yellow);
 
             SafeWrite(x + 3, y + 3, "PASSO 1: MONTE A RECEITA NA COZINHA (ABA 1 E ABA 3)", ConsoleColor.Green);
-            SafeWrite(x + 5, y + 4, "- Cada prato tem uma ORDEM PADRÃO fixa (consulte a 'Aba 3. Receitas & Menu' ou o lembrete na Cozinha).", ConsoleColor.White);
+            SafeWrite(x + 5, y + 4, "- Cada prato tem uma ORDEM PADRÃO fixa (consulte a 'Aba 3. Receitas & Menu' ou o guia na Cozinha).", ConsoleColor.White);
             SafeWrite(x + 5, y + 5, "- Respeite as exceções do cliente: se ele pedir 'SEM Cebola', pule a Cebola mas mantenha a ordem do resto!", ConsoleColor.Gray);
 
             SafeWrite(x + 3, y + 7, "PASSO 2: REPONHA O ESTOQUE AUDITANDO ENTREGAS (ABA 2)", ConsoleColor.Cyan);
@@ -288,10 +288,10 @@ namespace PizzariaTycoon
             SafeWrite(x + 5, y + 9, "- Rejeite caixas com Cidade errada, Fornecedor pirata, Data divergente ou erro de digitação.", ConsoleColor.Gray);
             SafeWrite(x + 5, y + 10, "- Abra até 3 caixas suspeitas para conferir se o Item Físico, Lote (LT-XXX) e Temperatura (<=5°C) estão certos!", ConsoleColor.Gray);
 
-            SafeWrite(x + 3, y + 12, "PASSO 3: ENTENDA REPUTAÇÃO (*), LIMPEZA E UPGRADES (ABA 5)", ConsoleColor.Magenta);
-            SafeWrite(x + 5, y + 13, "- REPUTAÇÃO (*): Sobe com pratos perfeitos. Permite cobrar mais caro e aumenta seu limite no Banco.", ConsoleColor.White);
-            SafeWrite(x + 5, y + 14, "- LIMPEZA: Cai todo mês! Mantenha a Limpeza >= ao valor ideal no topo da tela para evitar multas sanitárias.", ConsoleColor.White);
-            SafeWrite(x + 5, y + 15, "- UPGRADES: Forno (+ações por dia), Câmara Fria (+estoque), Balcão (+gorjetas) e Logística (+caixas abertas).", ConsoleColor.White);
+            SafeWrite(x + 3, y + 12, "PASSO 3: SIGA AS METAS RECOMENDADAS NA GERÊNCIA (ABA 5)", ConsoleColor.Magenta);
+            SafeWrite(x + 5, y + 13, "- Não contrate funcionários demais no Nível 1 para não explodir sua folha salarial!", ConsoleColor.White);
+            SafeWrite(x + 5, y + 14, "- Siga o painel 'META RECOMENDADA DO NÍVEL' na Aba 5 para crescer de forma saudável.", ConsoleColor.White);
+            SafeWrite(x + 5, y + 15, "- DICA DEV: A Aba [7. TERMINAL] permite testar tudo no jogo digitando a senha de desenvolvedor.", ConsoleColor.White);
 
             SafeWrite(x + 3, y + 17, "DICA DE TELA: Segure [CTRL + Roda do Mouse para Cima] no terminal do Windows para aumentar o tamanho da fonte!", ConsoleColor.Yellow);
 
@@ -340,11 +340,12 @@ namespace PizzariaTycoon
         {
             int y = 4;
             AddButton(2, y, " [1. COZINHA] ", AbaAtual == ScreenTab.Cozinha ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Cozinha);
-            AddButton(18, y, " [2. ENTREGAS] ", AbaAtual == ScreenTab.Entregas ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Entregas);
-            AddButton(35, y, " [3. RECEITAS & MENU] ", AbaAtual == ScreenTab.LivroReceitas ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.LivroReceitas);
-            AddButton(59, y, " [4. ESTOQUE] ", AbaAtual == ScreenTab.EstoqueCatalogo ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.EstoqueCatalogo);
-            AddButton(75, y, " [5. GERÊNCIA] ", AbaAtual == ScreenTab.Administracao ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Administracao);
-            AddButton(92, y, " [6. BANCO] ", AbaAtual == ScreenTab.Banco ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Banco);
+            AddButton(17, y, " [2. ENTREGAS] ", AbaAtual == ScreenTab.Entregas ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Entregas);
+            AddButton(33, y, " [3. RECEITAS & MENU] ", AbaAtual == ScreenTab.LivroReceitas ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.LivroReceitas);
+            AddButton(56, y, " [4. ESTOQUE] ", AbaAtual == ScreenTab.EstoqueCatalogo ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.EstoqueCatalogo);
+            AddButton(71, y, " [5. GERÊNCIA] ", AbaAtual == ScreenTab.Administracao ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Administracao);
+            AddButton(87, y, " [6. BANCO] ", AbaAtual == ScreenTab.Banco ? ConsoleColor.Cyan : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Banco);
+            AddButton(100, y, " [7. TERMINAL] ", AbaAtual == ScreenTab.Terminal ? ConsoleColor.Magenta : ConsoleColor.DarkGray, ConsoleColor.Black, () => AbaAtual = ScreenTab.Terminal);
         }
 
         private void RenderCozinha()
@@ -353,7 +354,6 @@ namespace PizzariaTycoon
             SafeWrite(2, 6, $"PEDIDO DO CLIENTE (Valor Fixado: R$ {_game.CalcularValorVendaPrato():F2} | Gasta 1 Ação):", ConsoleColor.Yellow);
             SafeWrite(2, 7, pedido.FalaDoCliente, ConsoleColor.White);
 
-            // Exibe a receita base como guia rápido no Nível 1 e 2 para ensinar o jogador sem frustração!
             var recPadrao = new List<string> { pedido.Receita.IngredienteBaseTopo };
             recPadrao.AddRange(pedido.Receita.IngredientesPadrao);
             if (!string.IsNullOrEmpty(pedido.Receita.IngredienteBaseFundo)) recPadrao.Add(pedido.Receita.IngredienteBaseFundo);
@@ -463,7 +463,7 @@ namespace PizzariaTycoon
             int totalPag = Math.Max(1, (int)Math.Ceiling(pratos.Count / (double)porPagina));
             PaginaReceitas = Math.Clamp(PaginaReceitas, 0, totalPag - 1);
 
-            SafeWrite(2, 6, $"LIVRO DE RECEITAS & CARDÁPIO ATIVO (Pág. {PaginaReceitas + 1}/{totalPag}) - Clique para ativar/desativar pratos:", ConsoleColor.Yellow);
+            SafeWrite(2, 6, $"LIVRO DE RECEITAS & CARDÁPIO ATIVO (Pág. {PaginaReceitas + 1}/{totalPag}) - Todos os 96 ingredientes estão integrados:", ConsoleColor.Yellow);
             if (totalPag > 1)
             {
                 AddButton(84, 6, "[ < Pág. Ant ]", ConsoleColor.DarkGray, ConsoleColor.White, () => PaginaReceitas = Math.Max(0, PaginaReceitas - 1));
@@ -482,7 +482,8 @@ namespace PizzariaTycoon
                 ordemCompleta.AddRange(p.IngredientesPadrao);
                 if (!string.IsNullOrEmpty(p.IngredienteBaseFundo)) ordemCompleta.Add(p.IngredienteBaseFundo);
 
-                SafeWrite(13, row, $"{p.Nome,-18}: {string.Join(" -> ", ordemCompleta)}", ConsoleColor.White);
+                string tagEstacao = p.EstacaoFavorita != "TODAS" ? $" [{p.EstacaoFavorita}]" : "";
+                SafeWrite(13, row, $"{p.Nome + tagEstacao,-28}: {string.Join(" -> ", ordemCompleta)}", ConsoleColor.White);
                 row++;
             }
         }
@@ -527,32 +528,35 @@ namespace PizzariaTycoon
         {
             var cfg = _game.ConfigAtual;
             SafeWrite(2, 6, $"GERÊNCIA & UPGRADES | {_game.ObterTextoProximaMeta()}", ConsoleColor.Yellow);
-            SafeWrite(2, 7, $"Diagnóstico de Risco: {_game.DiagnosticarMaiorRiscoAtual()}", ConsoleColor.Cyan);
 
-            SafeWrite(2, 9, $"Funcionários ({_game.Funcionarios}) - Custo: R$ {cfg.CustoPorFuncionario:F0}/un (+Valor por Prato):");
-            AddButton(62, 9, " [ +1 ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.ContratarFuncionariosLote(1));
-            AddButton(72, 9, " [ +10 ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.ContratarFuncionariosLote(10));
-            AddButton(83, 9, " [ +MÁX ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.ContratarFuncionariosLote(999));
+            // Painel de Metas Recomendadas para o Nível Atual
+            SafeWrite(2, 7, $"[META RECOMENDADA DO NÍVEL {_game.NivelAtual}] -> Funcionários: {_game.Funcionarios}/{cfg.RecFuncionarios} | Limpeza Ideal: {_game.Limpeza}/{Math.Max(cfg.RecLimpeza, _game.ObterLimpezaIdeal())} | Upgrades: {_game.TotalUpgrades}/{cfg.RecUpgrades}", ConsoleColor.Green);
+            SafeWrite(2, 8, $"Diagnóstico de Risco: {_game.DiagnosticarMaiorRiscoAtual()}", ConsoleColor.Cyan);
 
-            SafeWrite(2, 11, $"Limpeza ({_game.Limpeza} / Ideal: {_game.ObterLimpezaIdeal()}) - Custo: R$ {cfg.CustoPorLimpeza:F0}/un (Evita Multas):");
-            AddButton(62, 11, " [ +1 ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.ComprarLimpezaLote(1));
-            AddButton(72, 11, " [ +10 ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.ComprarLimpezaLote(10));
-            AddButton(83, 11, " [ +MÁX ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.ComprarLimpezaLote(999));
+            SafeWrite(2, 10, $"Funcionários ({_game.Funcionarios}) - Custo: R$ {cfg.CustoPorFuncionario:F0}/un (+Valor por Prato):");
+            AddButton(62, 10, " [ +1 ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.ContratarFuncionariosLote(1));
+            AddButton(72, 10, " [ +10 ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.ContratarFuncionariosLote(10));
+            AddButton(83, 10, " [ +MÁX ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.ContratarFuncionariosLote(999));
 
-            SafeWrite(2, 13, "UPGRADES ESPECIALIZADOS DO RESTAURANTE:", ConsoleColor.Yellow);
+            SafeWrite(2, 12, $"Limpeza ({_game.Limpeza} / Ideal: {_game.ObterLimpezaIdeal()}) - Custo: R$ {cfg.CustoPorLimpeza:F0}/un (Evita Multas):");
+            AddButton(62, 12, " [ +1 ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.ComprarLimpezaLote(1));
+            AddButton(72, 12, " [ +10 ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.ComprarLimpezaLote(10));
+            AddButton(83, 12, " [ +MÁX ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.ComprarLimpezaLote(999));
 
-            RenderUpgradeRow(15, "FORNO", $"1. Forno Turbo (Nv.{_game.UpgForno}) [+Ações Diárias]", _game.UpgForno);
-            RenderUpgradeRow(17, "GELADEIRA", $"2. Câmara Fria (Nv.{_game.UpgGeladeira}) [Cap. Estoque: {_game.CapacidadeMaximaEstoque}]", _game.UpgGeladeira);
-            RenderUpgradeRow(19, "BALCAO", $"3. Balcão VIP  (Nv.{_game.UpgBalcao}) [+Gorjeta e Reputação]", _game.UpgBalcao);
-            RenderUpgradeRow(21, "LOGISTICA", $"4. Logística   (Nv.{_game.UpgLogistica}) [Abre {_game.InspecoesCaixaMaximas} caixas/entrega]", _game.UpgLogistica);
+            SafeWrite(2, 14, "UPGRADES ESPECIALIZADOS DO RESTAURANTE:", ConsoleColor.Yellow);
 
-            SafeWrite(2, 24, $"Salários ({_game.MultiplicadorSalario * 100:F0}%):");
-            AddButton(22, 24, " [-10%] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.AjustarSalario(-0.10));
-            AddButton(32, 24, " [+10%] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.AjustarSalario(0.10));
+            RenderUpgradeRow(16, "FORNO", $"1. Forno Turbo (Nv.{_game.UpgForno}) [+Ações Diárias]", _game.UpgForno);
+            RenderUpgradeRow(18, "GELADEIRA", $"2. Câmara Fria (Nv.{_game.UpgGeladeira}) [Cap. Estoque: {_game.CapacidadeMaximaEstoque}]", _game.UpgGeladeira);
+            RenderUpgradeRow(20, "BALCAO", $"3. Balcão VIP  (Nv.{_game.UpgBalcao}) [+Gorjeta e Reputação]", _game.UpgBalcao);
+            RenderUpgradeRow(22, "LOGISTICA", $"4. Logística   (Nv.{_game.UpgLogistica}) [Abre {_game.InspecoesCaixaMaximas} caixas/entrega]", _game.UpgLogistica);
 
-            SafeWrite(48, 24, $"Preço Cardápio ({_game.MultiplicadorPrecoPrato * 100:F0}%):");
-            AddButton(74, 24, " [-10%] ", ConsoleColor.DarkYellow, ConsoleColor.Black, () => _game.AjustarPrecoPratos(-0.10));
-            AddButton(84, 24, " [+10%] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.AjustarPrecoPratos(0.10));
+            SafeWrite(2, 25, $"Salários ({_game.MultiplicadorSalario * 100:F0}%):");
+            AddButton(22, 25, " [-10%] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.AjustarSalario(-0.10));
+            AddButton(32, 25, " [+10%] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.AjustarSalario(0.10));
+
+            SafeWrite(48, 25, $"Preço Cardápio ({_game.MultiplicadorPrecoPrato * 100:F0}%):");
+            AddButton(74, 25, " [-10%] ", ConsoleColor.DarkYellow, ConsoleColor.Black, () => _game.AjustarPrecoPratos(-0.10));
+            AddButton(84, 25, " [+10%] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.AjustarPrecoPratos(0.10));
         }
 
         private void RenderUpgradeRow(int y, string codigo, string descricao, int nivelAtual)
@@ -568,7 +572,7 @@ namespace PizzariaTycoon
         {
             SafeWrite(2, 6, $"BANCO EMPRESARIAL | Limite de Crédito (por Reputação {_game.Reputacao:F1}*): R$ {_game.LimiteCreditoBanco:F2}", ConsoleColor.Yellow);
             SafeWrite(2, 8, $"Dívida Total: R$ {_game.DividaTotalBanco:F2} | Prazo Restante: {_game.MesesRestantesDivida} meses | Parcela Mensal: R$ {_game.ParcelaMensalBanco:F2}");
-            SafeWrite(2, 9, "Juros de 4% ao mês sobre o saldo devedor. Quitar antes economiza juros!", ConsoleColor.Cyan);
+            SafeWrite(2, 9, "Juros de 3% ao mês sobre o saldo devedor. Quitar antes economiza juros!", ConsoleColor.Cyan);
 
             AddButton(2, 11, " [ + TOMAR R$ 1.500 ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.PedirEmprestimo(1500));
             AddButton(28, 11, " [ + TOMAR R$ 4.500 ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.PedirEmprestimo(4500));
@@ -578,6 +582,86 @@ namespace PizzariaTycoon
             AddButton(2, 17, " [ PAGAR R$ 500 ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.AmortizarDivida(500));
             AddButton(23, 17, " [ PAGAR R$ 2.000 ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.AmortizarDivida(2000));
             AddButton(46, 17, $" [ QUITAR TUDO (R$ {_game.DividaTotalBanco:F2}) ] ", ConsoleColor.Green, ConsoleColor.Black, () => _game.AmortizarDivida(_game.DividaTotalBanco));
+        }
+
+        // ================== ABA 7: TERMINAL DO DESENVOLVEDOR (SENHA: xit89) ==================
+        private void RenderTerminalDev()
+        {
+            SafeWrite(2, 6, "=== TERMINAL DE DESENVOLVEDOR (ROOT ACCESS) ===", ConsoleColor.Magenta);
+
+            if (!_game.TerminalDesbloqueado)
+            {
+                SafeWrite(2, 8, "Este terminal exige autenticação de desenvolvedor.", ConsoleColor.Yellow);
+                SafeWrite(2, 9, "Digite a senha no teclado e aperte [ENTER], ou clique nas teclas abaixo:", ConsoleColor.Gray);
+
+                SafeWrite(2, 11, $"SENHA DIGITADA: [ {_game.InputSenhaTerminal,-12} ]", ConsoleColor.Cyan);
+
+                // Teclado clicável na tela para quem quiser usar apenas o mouse
+                AddButton(2, 13, " [ x ] ", ConsoleColor.DarkGray, ConsoleColor.White, () => _game.InputSenhaTerminal += "x");
+                AddButton(11, 13, " [ i ] ", ConsoleColor.DarkGray, ConsoleColor.White, () => _game.InputSenhaTerminal += "i");
+                AddButton(20, 13, " [ t ] ", ConsoleColor.DarkGray, ConsoleColor.White, () => _game.InputSenhaTerminal += "t");
+                AddButton(29, 13, " [ 8 ] ", ConsoleColor.DarkGray, ConsoleColor.White, () => _game.InputSenhaTerminal += "8");
+                AddButton(38, 13, " [ 9 ] ", ConsoleColor.DarkGray, ConsoleColor.White, () => _game.InputSenhaTerminal += "9");
+
+                AddButton(2, 15, " [ AUTENTICAR (ENTER) ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.TentarDesbloquearTerminal());
+                AddButton(28, 15, " [ LIMPAR SENHA ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.InputSenhaTerminal = "");
+                return;
+            }
+
+            SafeWrite(2, 7, "STATUS: AUTENTICADO (xit89) - Clique nos controles para alterar qualquer variável em tempo real:", ConsoleColor.Green);
+
+            // 1. Dinheiro
+            SafeWrite(2, 9, $"1. CAIXA (Atual: R$ {_game.Dinheiro:F2}):", ConsoleColor.Yellow);
+            AddButton(36, 9, " [+R$ 1.000] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevAlterarDinheiro(1000));
+            AddButton(51, 9, " [+R$ 10.000] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevAlterarDinheiro(10000));
+            AddButton(67, 9, " [+R$ 100.000] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevAlterarDinheiro(100000));
+            AddButton(84, 9, " [-R$ 1.000] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarDinheiro(-1000));
+            AddButton(99, 9, " [-R$ 10.000] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarDinheiro(-10000));
+            AddButton(115, 9, " [ZERAR] ", ConsoleColor.Red, ConsoleColor.White, () => _game.DevDefinirDinheiro(0));
+
+            // 2. Funcionários
+            SafeWrite(2, 11, $"2. FUNCIONÁRIOS (Atual: {_game.Funcionarios}):", ConsoleColor.Yellow);
+            AddButton(36, 11, " [ +1 Func ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevAlterarFuncionarios(1));
+            AddButton(51, 11, " [ +10 Func ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevAlterarFuncionarios(10));
+            AddButton(67, 11, " [ +50 Func ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevAlterarFuncionarios(50));
+            AddButton(84, 11, " [ -1 Func ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarFuncionarios(-1));
+            AddButton(99, 11, " [ -10 Func ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarFuncionarios(-10));
+
+            // 3. Limpeza
+            SafeWrite(2, 13, $"3. LIMPEZA (Atual: {_game.Limpeza}):", ConsoleColor.Yellow);
+            AddButton(36, 13, " [ +1 Limp ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.DevAlterarLimpeza(1));
+            AddButton(51, 13, " [ +10 Limp ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.DevAlterarLimpeza(10));
+            AddButton(67, 13, " [ +50 Limp ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.DevAlterarLimpeza(50));
+            AddButton(84, 13, " [ -1 Limp ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarLimpeza(-1));
+            AddButton(99, 13, " [ -10 Limp ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarLimpeza(-10));
+
+            // 4. Upgrades
+            SafeWrite(2, 15, $"4. UPGRADES (Total: {_game.TotalUpgrades}):", ConsoleColor.Yellow);
+            AddButton(36, 15, " [ +1 TODOS ] ", ConsoleColor.DarkMagenta, ConsoleColor.White, () => _game.DevAlterarUpgrades("TODOS", 1));
+            AddButton(52, 15, " [ +10 TODOS ] ", ConsoleColor.DarkMagenta, ConsoleColor.White, () => _game.DevAlterarUpgrades("TODOS", 10));
+            AddButton(69, 15, " [ -1 TODOS ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarUpgrades("TODOS", -1));
+            AddButton(85, 15, " [ -10 TODOS ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarUpgrades("TODOS", -10));
+
+            SafeWrite(2, 17, "   Upgrades Individuais:", ConsoleColor.Gray);
+            AddButton(36, 17, $" [+Forno ({_game.UpgForno})] ", ConsoleColor.DarkMagenta, ConsoleColor.White, () => _game.DevAlterarUpgrades("FORNO", 1));
+            AddButton(55, 17, $" [+Gelad ({_game.UpgGeladeira})] ", ConsoleColor.DarkMagenta, ConsoleColor.White, () => _game.DevAlterarUpgrades("GELADEIRA", 1));
+            AddButton(74, 17, $" [+Balcão ({_game.UpgBalcao})] ", ConsoleColor.DarkMagenta, ConsoleColor.White, () => _game.DevAlterarUpgrades("BALCAO", 1));
+            AddButton(94, 17, $" [+Logíst ({_game.UpgLogistica})] ", ConsoleColor.DarkMagenta, ConsoleColor.White, () => _game.DevAlterarUpgrades("LOGISTICA", 1));
+
+            // 5. Reputação e Nível
+            SafeWrite(2, 19, $"5. REPUTAÇÃO ({_game.Reputacao:F1}*) & NÍVEL ({_game.NivelAtual}):", ConsoleColor.Yellow);
+            AddButton(36, 19, " [ +0.5* Rep ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevAlterarReputacao(0.5));
+            AddButton(53, 19, " [ -0.5* Rep ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarReputacao(-0.5));
+            AddButton(70, 19, " [ +1 NÍVEL ] ", ConsoleColor.Blue, ConsoleColor.White, () => _game.DevAlterarNivel(1));
+            AddButton(86, 19, " [ -1 NÍVEL ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.DevAlterarNivel(-1));
+
+            // 6. Ferramentas de Estoque, Banco e Eventos
+            SafeWrite(2, 21, "6. UTILITÁRIOS DE TESTE:", ConsoleColor.Yellow);
+            AddButton(36, 21, " [ ENCHER ESTOQUE (96 ITENS) ] ", ConsoleColor.DarkCyan, ConsoleColor.White, () => _game.DevEncherEstoqueTotal());
+            AddButton(69, 21, " [ ZERAR DÍVIDA BANCO ] ", ConsoleColor.DarkGreen, ConsoleColor.White, () => _game.DevPerdoarDivida());
+            AddButton(95, 21, " [ SORTEAR EVENTO ] ", ConsoleColor.DarkYellow, ConsoleColor.Black, () => _game.SortearEventoDoDia());
+
+            AddButton(2, 24, " [ BLOQUEAR TERMINAL (LOGOUT) ] ", ConsoleColor.DarkRed, ConsoleColor.White, () => _game.BloquearTerminal());
         }
 
         private void RenderModalTribunal()
@@ -601,7 +685,7 @@ namespace PizzariaTycoon
             int fy = ScreenHeight - 2;
             SafeWrite(0, fy, new string(' ', ScreenWidth), ConsoleColor.Black, ConsoleColor.DarkGray);
             SafeWrite(2, fy, $"STATUS: {_game.UltimaMensagem}", ConsoleColor.Black, ConsoleColor.DarkGray);
-            SafeWrite(2, fy + 1, "Teclado: [1-6] Abas | [H] Ajuda/Tutorial | [Z] Desfazer | [Enter] Confirmar | [Ctrl + Roda do Mouse] Aumentar Fonte | [ESC] Sair", ConsoleColor.DarkGray);
+            SafeWrite(2, fy + 1, "Teclado: [1-7] Abas | [H] Ajuda | [Z] Desfazer | [Enter] Confirmar | [Ctrl + Roda do Mouse] Zoom | [ESC] Sair", ConsoleColor.DarkGray);
         }
 
         private void RenderEndScreen()
@@ -685,6 +769,37 @@ namespace PizzariaTycoon
                 return;
             }
 
+            // Se estiver na Aba Terminal bloqueada, permite digitar a senha (xit89) direto no teclado!
+            if (AbaAtual == ScreenTab.Terminal && !_game.TerminalDesbloqueado)
+            {
+                if (key == ConsoleKey.Backspace && _game.InputSenhaTerminal.Length > 0)
+                {
+                    _game.InputSenhaTerminal = _game.InputSenhaTerminal[..^1];
+                    Render();
+                    return;
+                }
+                if (key == ConsoleKey.Enter)
+                {
+                    _game.TentarDesbloquearTerminal();
+                    Render();
+                    return;
+                }
+                if (key >= ConsoleKey.A && key <= ConsoleKey.Z)
+                {
+                    char c = char.ToLowerInvariant((char)('a' + (key - ConsoleKey.A)));
+                    _game.InputSenhaTerminal += c;
+                    Render();
+                    return;
+                }
+                if ((key >= ConsoleKey.D8 && key <= ConsoleKey.D9) || (key >= ConsoleKey.NumPad8 && key <= ConsoleKey.NumPad9))
+                {
+                    char d = (key == ConsoleKey.D8 || key == ConsoleKey.NumPad8) ? '8' : '9';
+                    _game.InputSenhaTerminal += d;
+                    Render();
+                    return;
+                }
+            }
+
             if (key == ConsoleKey.H)
             {
                 _game.ExibirTutorial = true;
@@ -728,6 +843,7 @@ namespace PizzariaTycoon
                 case ConsoleKey.D4: case ConsoleKey.NumPad4: AbaAtual = ScreenTab.EstoqueCatalogo; IndiceBotaoFocadoTeclado = -1; Render(); break;
                 case ConsoleKey.D5: case ConsoleKey.NumPad5: AbaAtual = ScreenTab.Administracao; IndiceBotaoFocadoTeclado = -1; Render(); break;
                 case ConsoleKey.D6: case ConsoleKey.NumPad6: AbaAtual = ScreenTab.Banco; IndiceBotaoFocadoTeclado = -1; Render(); break;
+                case ConsoleKey.D7: case ConsoleKey.NumPad7: AbaAtual = ScreenTab.Terminal; IndiceBotaoFocadoTeclado = -1; Render(); break;
                 case ConsoleKey.Z:
                     if (AbaAtual == ScreenTab.Cozinha) { _game.DesfazerUltimoIngrediente(); Render(); }
                     break;

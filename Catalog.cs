@@ -29,10 +29,13 @@ namespace PizzariaTycoon
         public double BonusNivel { get; set; }
         public double CustoFixoMensal { get; set; }
         public int MinFuncionarios { get; set; }
+        public int RecFuncionarios { get; set; } // Meta recomendada para o nível
         public double CustoPorFuncionario { get; set; }
         public int MinLimpeza { get; set; }
+        public int RecLimpeza { get; set; }      // Limpeza recomendada para o nível
         public double CustoPorLimpeza { get; set; }
         public int MinUpgrades { get; set; }
+        public int RecUpgrades { get; set; }     // Upgrades recomendados para o nível
         public double CustoUpgradeBase { get; set; }
         public double PrecoMedioPrato { get; set; }
     }
@@ -44,6 +47,8 @@ namespace PizzariaTycoon
         public string IngredienteBaseTopo { get; set; }
         public string IngredienteBaseFundo { get; set; }
         public List<string> IngredientesPadrao { get; set; }
+        public bool EPratoDeEvento { get; set; } = false;
+        public string EstacaoFavorita { get; set; } = "TODAS"; // INVERNO, VERAO, EVENTO, TODAS
     }
 
     public static class Catalog
@@ -70,32 +75,38 @@ namespace PizzariaTycoon
                 .ToList();
         }
 
+        // Progressão calibrada: Início acessível -> Meio tático -> Final exigente
         public static readonly List<LevelConfig> Levels = new List<LevelConfig>
         {
             new LevelConfig {
-                Nivel = 1, Titulo = "Iniciante", BonusNivel = 0, CustoFixoMensal = 200,
-                MinFuncionarios = 0, CustoPorFuncionario = 100, MinLimpeza = 0, CustoPorLimpeza = 30,
-                MinUpgrades = 0, CustoUpgradeBase = 120, PrecoMedioPrato = 80
+                Nivel = 1, Titulo = "Iniciante", BonusNivel = 0, CustoFixoMensal = 150,
+                MinFuncionarios = 0, RecFuncionarios = 6, CustoPorFuncionario = 80,
+                MinLimpeza = 0, RecLimpeza = 8, CustoPorLimpeza = 25,
+                MinUpgrades = 0, RecUpgrades = 6, CustoUpgradeBase = 95, PrecoMedioPrato = 95
             },
             new LevelConfig {
-                Nivel = 2, Titulo = "Mini Comércio", BonusNivel = 1800, CustoFixoMensal = 250,
-                MinFuncionarios = 10, CustoPorFuncionario = 250, MinLimpeza = 15, CustoPorLimpeza = 60,
-                MinUpgrades = 15, CustoUpgradeBase = 220, PrecoMedioPrato = 220
+                Nivel = 2, Titulo = "Mini Comércio", BonusNivel = 2000, CustoFixoMensal = 320,
+                MinFuncionarios = 8, RecFuncionarios = 16, CustoPorFuncionario = 180,
+                MinLimpeza = 12, RecLimpeza = 24, CustoPorLimpeza = 55,
+                MinUpgrades = 10, RecUpgrades = 20, CustoUpgradeBase = 190, PrecoMedioPrato = 240
             },
             new LevelConfig {
-                Nivel = 3, Titulo = "Restaurante", BonusNivel = 2500, CustoFixoMensal = 400,
-                MinFuncionarios = 25, CustoPorFuncionario = 350, MinLimpeza = 40, CustoPorLimpeza = 100,
-                MinUpgrades = 40, CustoUpgradeBase = 420, PrecoMedioPrato = 550
+                Nivel = 3, Titulo = "Restaurante", BonusNivel = 3200, CustoFixoMensal = 650,
+                MinFuncionarios = 20, RecFuncionarios = 32, CustoPorFuncionario = 310,
+                MinLimpeza = 30, RecLimpeza = 50, CustoPorLimpeza = 95,
+                MinUpgrades = 26, RecUpgrades = 42, CustoUpgradeBase = 380, PrecoMedioPrato = 580
             },
             new LevelConfig {
-                Nivel = 4, Titulo = "Restaurante Nacional", BonusNivel = 3500, CustoFixoMensal = 800,
-                MinFuncionarios = 40, CustoPorFuncionario = 450, MinLimpeza = 80, CustoPorLimpeza = 250,
-                MinUpgrades = 60, CustoUpgradeBase = 800, PrecoMedioPrato = 1100
+                Nivel = 4, Titulo = "Restaurante Nacional", BonusNivel = 5000, CustoFixoMensal = 1300,
+                MinFuncionarios = 38, RecFuncionarios = 60, CustoPorFuncionario = 460,
+                MinLimpeza = 60, RecLimpeza = 90, CustoPorLimpeza = 190,
+                MinUpgrades = 50, RecUpgrades = 75, CustoUpgradeBase = 750, PrecoMedioPrato = 1180
             },
             new LevelConfig {
-                Nivel = 5, Titulo = "Restaurante Elite Global", BonusNivel = 8500, CustoFixoMensal = 1220,
-                MinFuncionarios = 100, CustoPorFuncionario = 800, MinLimpeza = 150, CustoPorLimpeza = 250,
-                MinUpgrades = 100, CustoUpgradeBase = 1500, PrecoMedioPrato = 2400
+                Nivel = 5, Titulo = "Restaurante Elite Global", BonusNivel = 10000, CustoFixoMensal = 2600,
+                MinFuncionarios = 80, RecFuncionarios = 110, CustoPorFuncionario = 780,
+                MinLimpeza = 120, RecLimpeza = 160, CustoPorLimpeza = 260,
+                MinUpgrades = 85, RecUpgrades = 115, CustoUpgradeBase = 1450, PrecoMedioPrato = 2450
             }
         };
 
@@ -208,27 +219,32 @@ namespace PizzariaTycoon
             new IngredientInfo { Nome = "Gengibre", Nivel = 5, Categoria = IngredientCategory.Vegetal, ExigeRefrigeracao = false }
         };
 
+        // 100% dos 96 ingredientes são utilizados nas receitas abaixo (incluindo pratos sazonais/eventos)
         public static readonly List<DishRecipe> Pratos = new List<DishRecipe>
         {
-            // NÍVEL 1
+            // NÍVEL 1 (Usa todos os 22 ingredientes do Nível 1)
             new DishRecipe {
-                Nome = "Macarrão", NivelDesbloqueio = 1, IngredienteBaseTopo = "Pasta",
-                IngredientesPadrao = new List<string> { "Molho de Tomate", "Carne", "Queijo", "Tomate", "Manjericão", "Sal" }
+                Nome = "Macarrão", NivelDesbloqueio = 1, IngredienteBaseTopo = "Pasta", EstacaoFavorita = "INVERNO",
+                IngredientesPadrao = new List<string> { "Molho de Tomate", "Molho Branco", "Carne Moída", "Queijo", "Tomate", "Manjericão", "Sal" }
             },
             new DishRecipe {
-                Nome = "Pizza", NivelDesbloqueio = 1, IngredienteBaseTopo = "Massa",
-                IngredientesPadrao = new List<string> { "Molho de Tomate", "Queijo", "Pepperoni", "Tomate", "Cogumelo", "Cebola" }
+                Nome = "Pizza", NivelDesbloqueio = 1, IngredienteBaseTopo = "Massa", EstacaoFavorita = "TODAS",
+                IngredientesPadrao = new List<string> { "Molho de Tomate", "Queijo", "Pepperoni", "Salame", "Lombo", "Tomate", "Cogumelo", "Cebola" }
             },
             new DishRecipe {
-                Nome = "Hambúrguer", NivelDesbloqueio = 1, IngredienteBaseTopo = "Pão Superior", IngredienteBaseFundo = "Pão Inferior",
+                Nome = "Hambúrguer", NivelDesbloqueio = 1, IngredienteBaseTopo = "Pão Superior", IngredienteBaseFundo = "Pão Inferior", EstacaoFavorita = "TODAS",
                 IngredientesPadrao = new List<string> { "Carne", "Queijo", "Alface", "Tomate", "Cebola", "Molho" }
             },
             new DishRecipe {
-                Nome = "Salada", NivelDesbloqueio = 1, IngredienteBaseTopo = "Alface",
+                Nome = "Salada", NivelDesbloqueio = 1, IngredienteBaseTopo = "Alface", EstacaoFavorita = "VERAO",
                 IngredientesPadrao = new List<string> { "Tomate", "Cebola", "Frango", "Farofa", "Azeite", "Sal" }
             },
+            new DishRecipe {
+                Nome = "Pizza Rústica (Chef)", NivelDesbloqueio = 1, IngredienteBaseTopo = "Massa", EPratoDeEvento = true, EstacaoFavorita = "EVENTO",
+                IngredientesPadrao = new List<string> { "Molho Branco", "Queijo", "Salame", "Lombo", "Cogumelo", "Manjericão", "Azeite" }
+            },
 
-            // NÍVEL 2
+            // NÍVEL 2 (Usa todos os 16 ingredientes do Nível 2)
             new DishRecipe {
                 Nome = "Cachorro-quente", NivelDesbloqueio = 2, IngredienteBaseTopo = "Pão de Hot Dog",
                 IngredientesPadrao = new List<string> { "Salsicha", "Purê de Batata", "Milho", "Ervilha", "Ketchup", "Mostarda", "Batata Palha" }
@@ -238,17 +254,17 @@ namespace PizzariaTycoon
                 IngredientesPadrao = new List<string> { "Presunto", "Queijo", "Bacon", "Espinafre", "Tomate", "Cebola", "Sal" }
             },
             new DishRecipe {
-                Nome = "Sanduíche Natural", NivelDesbloqueio = 2, IngredienteBaseTopo = "Pão de Forma",
+                Nome = "Sanduíche Natural", NivelDesbloqueio = 2, IngredienteBaseTopo = "Pão de Forma", EstacaoFavorita = "VERAO",
                 IngredientesPadrao = new List<string> { "Maionese", "Requeijão", "Frango", "Cenoura", "Alface", "Tomate", "Milho" }
             },
 
-            // NÍVEL 3
+            // NÍVEL 3 (Usa todos os 11 ingredientes do Nível 3)
             new DishRecipe {
                 Nome = "Panqueca", NivelDesbloqueio = 3, IngredienteBaseTopo = "Massa de Panqueca",
                 IngredientesPadrao = new List<string> { "Carne Moída", "Molho à Bolonhesa", "Queijo Mussarela", "Requeijão Cremoso", "Ricota" }
             },
             new DishRecipe {
-                Nome = "Lasanha", NivelDesbloqueio = 3, IngredienteBaseTopo = "Massa de Lasanha",
+                Nome = "Lasanha", NivelDesbloqueio = 3, IngredienteBaseTopo = "Massa de Lasanha", EstacaoFavorita = "INVERNO",
                 IngredientesPadrao = new List<string> { "Molho à Bolonhesa", "Molho Branco", "Presunto", "Queijo Mussarela", "Queijo Parmesão", "Berinjela" }
             },
             new DishRecipe {
@@ -256,23 +272,23 @@ namespace PizzariaTycoon
                 IngredientesPadrao = new List<string> { "Carne Moída", "Queijo Mussarela", "Palmito", "Azeitona", "Requeijão Cremoso" }
             },
 
-            // NÍVEL 4
+            // NÍVEL 4 (Usa todos os 18 ingredientes do Nível 4, incluindo Abacate, Pimentão e Feijão-Preto)
             new DishRecipe {
                 Nome = "Tacos", NivelDesbloqueio = 4, IngredienteBaseTopo = "Tortilha",
-                IngredientesPadrao = new List<string> { "Carne Moída", "Feijão", "Queijo Cheddar", "Guacamole", "Creme Azedo", "Molho Picante", "Alface" }
+                IngredientesPadrao = new List<string> { "Carne Moída", "Feijão", "Feijão-Preto", "Queijo Cheddar", "Guacamole", "Abacate", "Creme Azedo", "Molho Picante", "Alface" }
             },
             new DishRecipe {
-                Nome = "Yakisoba", NivelDesbloqueio = 4, IngredienteBaseTopo = "Macarrão para Yakisoba",
-                IngredientesPadrao = new List<string> { "Carne", "Frango", "Camarão", "Brócolis", "Repolho", "Cenoura", "Molho Shoyu" }
+                Nome = "Yakisoba", NivelDesbloqueio = 4, IngredienteBaseTopo = "Macarrão para Yakisoba", EstacaoFavorita = "INVERNO",
+                IngredientesPadrao = new List<string> { "Carne", "Frango", "Camarão", "Brócolis", "Repolho", "Cenoura", "Pimentão", "Molho Shoyu" }
             },
             new DishRecipe {
-                Nome = "Risoto", NivelDesbloqueio = 4, IngredienteBaseTopo = "Arroz Arbóreo",
+                Nome = "Risoto", NivelDesbloqueio = 4, IngredienteBaseTopo = "Arroz Arbóreo", EstacaoFavorita = "INVERNO",
                 IngredientesPadrao = new List<string> { "Caldo de Legumes", "Manteiga", "Camarão", "Cogumelo", "Alho-Poró", "Queijo Parmesão" }
             },
 
-            // NÍVEL 5
+            // NÍVEL 5 (Usa todos os 29 ingredientes do Nível 5, incluindo Gotas de Chocolate e Mel)
             new DishRecipe {
-                Nome = "Sushi", NivelDesbloqueio = 5, IngredienteBaseTopo = "Arroz Japonês",
+                Nome = "Sushi", NivelDesbloqueio = 5, IngredienteBaseTopo = "Arroz Japonês", EstacaoFavorita = "VERAO",
                 IngredientesPadrao = new List<string> { "Alga Nori", "Salmão", "Atum", "Cream Cheese", "Pepino", "Gergelim", "Cebolinha" }
             },
             new DishRecipe {
@@ -280,16 +296,20 @@ namespace PizzariaTycoon
                 IngredientesPadrao = new List<string> { "Arroz Branco", "Carne", "Feijão-Preto", "Queijo Cheddar", "Guacamole", "Creme Azedo", "Molho Picante" }
             },
             new DishRecipe {
-                Nome = "Açaí na Tigela", NivelDesbloqueio = 5, IngredienteBaseTopo = "Açaí",
-                IngredientesPadrao = new List<string> { "Banana", "Morango", "Kiwi", "Granola", "Leite em Pó", "Leite Condensado", "Paçoca" }
+                Nome = "Açaí na Tigela", NivelDesbloqueio = 5, IngredienteBaseTopo = "Açaí", EstacaoFavorita = "VERAO",
+                IngredientesPadrao = new List<string> { "Banana", "Morango", "Kiwi", "Granola", "Leite em Pó", "Leite Condensado", "Paçoca", "Gotas de Chocolate", "Mel" }
             },
             new DishRecipe {
-                Nome = "Escargot", NivelDesbloqueio = 5, IngredienteBaseTopo = "Caracol (Escargot)",
+                Nome = "Escargot", NivelDesbloqueio = 5, IngredienteBaseTopo = "Caracol (Escargot)", EstacaoFavorita = "EVENTO",
                 IngredientesPadrao = new List<string> { "Manteiga", "Alho", "Salsinha", "Vinho Branco", "Sal", "Pimenta-do-Reino", "Pão Francês" }
             },
             new DishRecipe {
-                Nome = "Baiacu", NivelDesbloqueio = 5, IngredienteBaseTopo = "Baiacu",
+                Nome = "Baiacu", NivelDesbloqueio = 5, IngredienteBaseTopo = "Baiacu", EstacaoFavorita = "EVENTO",
                 IngredientesPadrao = new List<string> { "Limão", "Gengibre", "Cebolinha", "Molho Shoyu", "Alho", "Salsinha", "Pimenta-do-Reino" }
+            },
+            new DishRecipe {
+                Nome = "Feijoada Imperial (Chef)", NivelDesbloqueio = 4, IngredienteBaseTopo = "Feijão-Preto", EPratoDeEvento = true, EstacaoFavorita = "EVENTO",
+                IngredientesPadrao = new List<string> { "Carne", "Lombo", "Bacon", "Salsicha", "Farofa", "Cebola", "Sal" }
             }
         };
 
