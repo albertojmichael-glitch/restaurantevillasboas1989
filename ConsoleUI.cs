@@ -40,11 +40,15 @@ namespace PizzariaTycoon
 
     public class ConsoleUI
     {
-        public const int MaxBufferWidth = 240;
-        public const int MaxBufferHeight = 80;
+        public const int MaxBufferWidth = 500;
+        public const int MaxBufferHeight = 200;
+        public const int MaxLayoutWidth = 150;   // largura lógica máxima; telas maiores ganham margens
 
         public int ScreenWidth { get; private set; } = 148;
         public int ScreenHeight { get; private set; } = 36;
+
+        private int _physW = 148;   // largura real do console
+        private int _ox = 0;        // deslocamento horizontal para centralizar o layout
 
         private readonly GameEngine _game;
         private readonly ScreenCell[,] _backBuffer = new ScreenCell[MaxBufferWidth, MaxBufferHeight];
@@ -93,27 +97,35 @@ namespace PizzariaTycoon
         // ------------------------------------------------------------------
         //  Infra de desenho
         // ------------------------------------------------------------------
-        private void SyncScreenDimensions()
+        private bool SyncScreenDimensions()
         {
             try
             {
-                int w = Math.Clamp(Console.WindowWidth, 118, MaxBufferWidth - 1);
-                int h = Math.Clamp(Console.WindowHeight, 30, MaxBufferHeight - 1);
-                if (w != ScreenWidth || h != ScreenHeight)
+                int pw = Math.Clamp(Math.Min(Console.WindowWidth, Console.BufferWidth), 118, MaxBufferWidth - 1);
+                int h = Math.Clamp(Math.Min(Console.WindowHeight, Console.BufferHeight), 30, MaxBufferHeight - 1);
+                int lw = Math.Min(pw, MaxLayoutWidth);
+                int ox = (pw - lw) / 2;
+
+                if (pw != _physW || h != ScreenHeight || lw != ScreenWidth || ox != _ox)
                 {
-                    ScreenWidth = w;
+                    _physW = pw;
+                    ScreenWidth = lw;
                     ScreenHeight = h;
+                    _ox = ox;
                     _forceFullRedraw = true;
+                    Console.ResetColor();
                     Console.Clear();
+                    return true;
                 }
             }
             catch { }
+            return false;
         }
 
         private void ClearBackBuffer()
         {
             for (int y = 0; y < ScreenHeight; y++)
-                for (int x = 0; x < ScreenWidth; x++)
+                for (int x = 0; x < _physW; x++)
                     _backBuffer[x, y] = new ScreenCell { Char = ' ', Fg = ConsoleColor.Gray, Bg = ConsoleColor.Black };
         }
 
@@ -126,7 +138,7 @@ namespace PizzariaTycoon
                 int cx = x + i;
                 if (cx < 0) continue;
                 if (cx >= ScreenWidth) break;
-                _backBuffer[cx, y] = new ScreenCell { Char = text[i], Fg = fg, Bg = bg };
+                _backBuffer[cx + _ox, y] = new ScreenCell { Char = text[i], Fg = fg, Bg = bg };
             }
         }
 
@@ -220,7 +232,8 @@ namespace PizzariaTycoon
             if (y < 0 || y >= ScreenHeight || x < 0 || x >= ScreenWidth) return;
 
             int btnIndex = BotoesAtivos.Count;
-            bool isMouseHover = HoverX >= x && HoverX < (x + label.Length) && HoverY == y;
+            int hx = HoverX - _ox;
+            bool isMouseHover = hx >= x && hx < (x + label.Length) && HoverY == y;
             bool isKeyFocus = IndiceBotaoFocadoTeclado == btnIndex;
 
             ConsoleColor finalBg = bg;
@@ -244,7 +257,7 @@ namespace PizzariaTycoon
         private int IndexAt(int x, int y)
         {
             for (int i = 0; i < BotoesAtivos.Count; i++)
-                if (BotoesAtivos[i].Contains(x, y)) return i;
+                if (BotoesAtivos[i].Contains(x - _ox, y)) return i;
             return -1;
         }
 
@@ -294,7 +307,7 @@ namespace PizzariaTycoon
 
         private void FlushBufferToConsole()
         {
-            int maxW = Math.Min(ScreenWidth, Console.BufferWidth);
+            int maxW = Math.Min(_physW, Console.BufferWidth);
             int maxH = Math.Min(ScreenHeight, Console.BufferHeight);
 
             ConsoleColor curFg = (ConsoleColor)(-1);
@@ -731,7 +744,7 @@ namespace PizzariaTycoon
         {
             // Escurece o fundo e deixa apenas o diálogo interativo
             for (int yy = 0; yy < ScreenHeight; yy++)
-                for (int xx = 0; xx < ScreenWidth; xx++)
+                for (int xx = 0; xx < _physW; xx++)
                 {
                     var c = _backBuffer[xx, yy];
                     c.Fg = ConsoleColor.DarkGray;
@@ -1441,6 +1454,7 @@ namespace PizzariaTycoon
         // ------------------------------------------------------------------
         public void HandleMouseMove(int x, int y)
         {
+            if (SyncScreenDimensions()) { Render(); return; }
             if (x == HoverX && y == HoverY) return;
 
             int antes = IndexAt(HoverX, HoverY);
@@ -1451,11 +1465,18 @@ namespace PizzariaTycoon
             if (antes != depois) Render();
         }
 
+        /// <summary>Chamado quando o console é redimensionado.</summary>
+        public void HandleResize()
+        {
+            _forceFullRedraw = true;
+            Render();
+        }
+
         public void HandleMouseClick(int x, int y)
         {
             foreach (var btn in BotoesAtivos.ToList())
             {
-                if (btn.Contains(x, y))
+                if (btn.Contains(x - _ox, y))
                 {
                     btn.OnClick?.Invoke();
                     Render();

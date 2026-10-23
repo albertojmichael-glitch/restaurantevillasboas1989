@@ -12,6 +12,8 @@ namespace PizzariaTycoon
         private const uint ENABLE_EXTENDED_FLAGS = 0x0080;
         private const ushort KEY_EVENT = 0x0001;
         private const ushort MOUSE_EVENT = 0x0002;
+        private const ushort WINDOW_BUFFER_SIZE_EVENT = 0x0004;
+        private const uint ENABLE_WINDOW_INPUT = 0x0008;
         private const uint FROM_LEFT_1ST_BUTTON_PRESSED = 0x0001;
         private const uint MOUSE_MOVED = 0x0001;
 
@@ -108,6 +110,7 @@ namespace PizzariaTycoon
                 mode &= ~ENABLE_QUICK_EDIT_MODE;
                 mode |= ENABLE_EXTENDED_FLAGS;
                 mode |= ENABLE_MOUSE_INPUT;
+                mode |= ENABLE_WINDOW_INPUT;   // recebe eventos de redimensionamento da janela
                 SetConsoleMode(handleIn, mode);
             }
 
@@ -122,7 +125,11 @@ namespace PizzariaTycoon
                 {
                     var rec = recordBuffer[0];
 
-                    if (rec.EventType == MOUSE_EVENT)
+                    if (rec.EventType == WINDOW_BUFFER_SIZE_EVENT)
+                    {
+                        ui.HandleResize();
+                    }
+                    else if (rec.EventType == MOUSE_EVENT)
                     {
                         var mouse = rec.MouseEvent;
                         bool cliqueEsquerdo = (mouse.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
