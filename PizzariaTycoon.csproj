@@ -7,4 +7,10 @@
     <Nullable>disable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="PizzariaTycoon.Tests\**" />
+    <EmbeddedResource Remove="PizzariaTycoon.Tests\**" />
+    <None Remove="PizzariaTycoon.Tests\**" />
+  </ItemGroup>
+
 </Project>

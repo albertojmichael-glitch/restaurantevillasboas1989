@@ -1,0 +1,32 @@
+name: CI - Build e Testes
+
+on:
+  push:
+    branches: [ "main", "master", "feat/**" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest ]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - name: Baixar código do repositório
+      uses: actions/checkout@v4
+
+    - name: Configurar .NET 8
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Compilar projeto principal (Release)
+      run: dotnet build PizzariaTycoon.csproj -c Release
+
+    - name: Executar testes automatizados
+      run: dotnet run --project PizzariaTycoon.Tests/PizzariaTycoon.Tests.csproj -c Release
