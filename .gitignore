@@ -3,3 +3,8 @@ obj/
 .vs/
 *.user
 *.suo
+saves/
+logs/
+saida_exe/
+savegame.json
+settings.json

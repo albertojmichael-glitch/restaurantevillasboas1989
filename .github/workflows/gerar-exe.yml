@@ -1,4 +1,4 @@
-name: Gerar Executavel Windows
+name: Gerar Executáveis Multiplataforma
 
 on:
   push:
@@ -6,30 +6,47 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            artifact: PizzariaTycoon-Windows-x64
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: PizzariaTycoon-Linux-x64
+          - os: macos-latest
+            rid: osx-x64
+            artifact: PizzariaTycoon-macOS-x64
+
+    runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Baixar codigo do repositorio
+    - name: Baixar código do repositório
       uses: actions/checkout@v4
 
-    - name: Configurar .NET 8 na nuvem
+    - name: Configurar .NET 8
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
 
-    - name: Criar .csproj automaticamente se nao existir
-      shell: pwsh
-      run: |
-        if (-not (Get-ChildItem -Filter *.csproj)) {
-          '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net8.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><Nullable>disable</Nullable></PropertyGroup></Project>' | Out-File -FilePath PizzariaTycoon.csproj -Encoding utf8
-        }
+    - name: Executar testes antes de publicar
+      run: dotnet run --project PizzariaTycoon.Tests/PizzariaTycoon.Tests.csproj -c Release
 
-    - name: Compilar arquivo .exe unico e independente
-      run: dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./saida_exe
+    - name: Publicar executável independente (${{ matrix.rid }})
+      run: >
+        dotnet publish PizzariaTycoon.csproj
+        -c Release
+        -r ${{ matrix.rid }}
+        --self-contained true
+        -p:PublishSingleFile=true
+        -p:IncludeNativeLibrariesForSelfExtract=true
+        -o ./saida_exe/${{ matrix.rid }}
 
-    - name: Disponibilizar .exe para download
+    - name: Disponibilizar executável para download
       uses: actions/upload-artifact@v4
       with:
-        name: PizzariaTycoon-Executavel
-        path: ./saida_exe/
+        name: ${{ matrix.artifact }}
+        path: ./saida_exe/${{ matrix.rid }}

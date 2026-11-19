@@ -16,6 +16,7 @@ namespace PizzariaTycoon
         private const uint ENABLE_WINDOW_INPUT = 0x0008;
         private const uint FROM_LEFT_1ST_BUTTON_PRESSED = 0x0001;
         private const uint MOUSE_MOVED = 0x0001;
+        private const uint SHIFT_PRESSED = 0x0010;
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr GetStdHandle(int nStdHandle);
@@ -89,20 +90,36 @@ namespace PizzariaTycoon
 
             Console.Clear();
 
-            var engine = new GameEngine();
+            var persistence = new PersistenceService();
+            var engine = new GameEngine(seed: null, persistence: persistence);
             var ui = new ConsoleUI(engine);
 
-            if (OperatingSystem.IsWindows())
+            try
             {
-                RunWindowsMouseAndKeyboardLoop(ui);
+                if (OperatingSystem.IsWindows())
+                {
+                    RunWindowsMouseAndKeyboardLoop(ui, engine);
+                }
+                else
+                {
+                    RunCrossPlatformKeyboardLoop(ui, engine);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                RunCrossPlatformKeyboardLoop(ui);
+                persistence.LogError("MainLoopFatal", ex);
+                try { engine.SalvarAutomatico("emergencia"); } catch { }
+                Console.ResetColor();
+                Console.CursorVisible = true;
+                Console.Clear();
+                Console.WriteLine("Ocorreu um erro inesperado, mas o jogo salvou um ponto de recuperação em saves/autosave.json.");
+                Console.WriteLine($"Detalhes registrados em: {persistence.ErrorLogPath}");
+                Console.WriteLine("Pressione qualquer tecla para encerrar.");
+                try { Console.ReadKey(true); } catch { }
             }
         }
 
-        private static void RunWindowsMouseAndKeyboardLoop(ConsoleUI ui)
+        private static void RunWindowsMouseAndKeyboardLoop(ConsoleUI ui, GameEngine engine)
         {
             IntPtr handleIn = GetStdHandle(STD_INPUT_HANDLE);
             if (GetConsoleMode(handleIn, out uint mode))
@@ -110,7 +127,7 @@ namespace PizzariaTycoon
                 mode &= ~ENABLE_QUICK_EDIT_MODE;
                 mode |= ENABLE_EXTENDED_FLAGS;
                 mode |= ENABLE_MOUSE_INPUT;
-                mode |= ENABLE_WINDOW_INPUT;   // recebe eventos de redimensionamento da janela
+                mode |= ENABLE_WINDOW_INPUT;
                 SetConsoleMode(handleIn, mode);
             }
 
@@ -123,44 +140,68 @@ namespace PizzariaTycoon
             {
                 if (ReadConsoleInput(handleIn, recordBuffer, 1, out uint _))
                 {
-                    var rec = recordBuffer[0];
-
-                    if (rec.EventType == WINDOW_BUFFER_SIZE_EVENT)
+                    try
                     {
-                        ui.HandleResize();
-                    }
-                    else if (rec.EventType == MOUSE_EVENT)
-                    {
-                        var mouse = rec.MouseEvent;
-                        bool cliqueEsquerdo = (mouse.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
+                        var rec = recordBuffer[0];
 
-                        if (mouse.dwEventFlags == MOUSE_MOVED)
+                        if (rec.EventType == WINDOW_BUFFER_SIZE_EVENT)
                         {
-                            ui.HandleMouseMove(mouse.dwMousePosition.X, mouse.dwMousePosition.Y);
+                            ui.HandleResize();
                         }
-                        else if (cliqueEsquerdo && !botaoPressionadoAnteriormente && mouse.dwEventFlags == 0)
+                        else if (rec.EventType == MOUSE_EVENT)
                         {
-                            ui.HandleMouseClick(mouse.dwMousePosition.X, mouse.dwMousePosition.Y);
-                        }
+                            var mouse = rec.MouseEvent;
+                            bool cliqueEsquerdo = (mouse.dwButtonState & FROM_LEFT_1ST_BUTTON_PRESSED) != 0;
 
-                        botaoPressionadoAnteriormente = cliqueEsquerdo;
+                            if (mouse.dwEventFlags == MOUSE_MOVED)
+                            {
+                                ui.HandleMouseMove(mouse.dwMousePosition.X, mouse.dwMousePosition.Y);
+                            }
+                            else if (cliqueEsquerdo && !botaoPressionadoAnteriormente && mouse.dwEventFlags == 0)
+                            {
+                                ui.HandleMouseClick(mouse.dwMousePosition.X, mouse.dwMousePosition.Y);
+                            }
+
+                            botaoPressionadoAnteriormente = cliqueEsquerdo;
+                        }
+                        else if (rec.EventType == KEY_EVENT && rec.KeyEvent.bKeyDown)
+                        {
+                            ConsoleKey key = (ConsoleKey)rec.KeyEvent.wVirtualKeyCode;
+                            bool shift = (rec.KeyEvent.dwControlKeyState & SHIFT_PRESSED) != 0;
+                            ui.HandleKeyPress(key, rec.KeyEvent.UnicodeChar, shift);
+                        }
                     }
-                    else if (rec.EventType == KEY_EVENT && rec.KeyEvent.bKeyDown)
+                    catch (Exception ex)
                     {
-                        ConsoleKey key = (ConsoleKey)rec.KeyEvent.wVirtualKeyCode;
-                        ui.HandleKeyPress(key);
+                        engine.Persistence.LogError("WindowsEventHandler", ex);
+                        engine.RegistrarFeedbackExterno("Sistema", "Proteção de entrada",
+                            "Uma entrada inesperada foi interceptada com segurança e registrada em logs/errors.log.",
+                            FeedbackSeverity.Aviso);
+                        ui.Render();
                     }
                 }
             }
         }
 
-        private static void RunCrossPlatformKeyboardLoop(ConsoleUI ui)
+        private static void RunCrossPlatformKeyboardLoop(ConsoleUI ui, GameEngine engine)
         {
             ui.Render();
             while (true)
             {
-                var keyInfo = Console.ReadKey(intercept: true);
-                ui.HandleKeyPress(keyInfo.Key);
+                try
+                {
+                    var keyInfo = Console.ReadKey(intercept: true);
+                    bool shift = (keyInfo.Modifiers & ConsoleModifiers.Shift) != 0;
+                    ui.HandleKeyPress(keyInfo.Key, keyInfo.KeyChar, shift);
+                }
+                catch (Exception ex)
+                {
+                    engine.Persistence.LogError("CrossPlatformEventHandler", ex);
+                    engine.RegistrarFeedbackExterno("Sistema", "Proteção de entrada",
+                        "Uma entrada inesperada foi interceptada com segurança e registrada em logs/errors.log.",
+                        FeedbackSeverity.Aviso);
+                    ui.Render();
+                }
             }
         }
     }

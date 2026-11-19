@@ -336,5 +336,19 @@ namespace PizzariaTycoon
         public static readonly List<string> CidadesInvalidas = new List<string> { "Belo Horizonte", "Porto Alegre", "Campinas", "Salvador", "Recife", "Brasília" };
         public static readonly List<string> FornecedoresValidos = new List<string> { "AgroFoods Brasil", "Distribuidora Sul", "Laticínios Real", "Horta Fresca SA" };
         public static readonly List<string> FornecedoresInvalidos = new List<string> { "Importadora Pirata", "Comércio Fantasma", "Frios Duvidosos Ltda", "Entregas Relâmpago X" };
+
+        public static readonly List<AchievementDefinition> Conquistas = new List<AchievementDefinition>
+        {
+            new AchievementDefinition { Id = "PRIMEIRO_PRATO", Titulo = "Primeiro Sabor", Descricao = "Entregue seu primeiro pedido perfeito no turno.", BonusPontos = 300 },
+            new AchievementDefinition { Id = "COMBO_5", Titulo = "Ritmo de Chef", Descricao = "Alcance 5 pedidos perfeitos consecutivos sem erros.", BonusPontos = 800 },
+            new AchievementDefinition { Id = "AUDITOR_IMPLACAVEL", Titulo = "Olho de Águia", Descricao = "Conclua 3 auditorias de entregas sem nenhum erro.", BonusPontos = 750 },
+            new AchievementDefinition { Id = "SEM_DIVIDAS", Titulo = "Contas em Dia", Descricao = "Quite integralmente um empréstimo no Banco Empresarial.", BonusPontos = 900 },
+            new AchievementDefinition { Id = "HIGIENE_OURO", Titulo = "Selo Sanitário Ouro", Descricao = "Seja aprovado em uma Blitz da Vigilância Sanitária.", BonusPontos = 850 },
+            new AchievementDefinition { Id = "LIDER_QUERIDO", Titulo = "Equipe Engajada", Descricao = "Alcance Moral da Equipe ≥ 80 com ao menos 5 funcionários.", BonusPontos = 1000 },
+            new AchievementDefinition { Id = "EXPANSAO_N3", Titulo = "Restaurante Consolidado", Descricao = "Evolua o estabelecimento até a Fase 3/5.", BonusPontos = 1200 },
+            new AchievementDefinition { Id = "ELITE_GLOBAL", Titulo = "Estrela Mundial", Descricao = "Alcance a Fase 5/5 (Restaurante Elite Global).", BonusPontos = 2500 },
+            new AchievementDefinition { Id = "SOBREVIVENTE_TRIBUNAL", Titulo = "Defesa Brilhante", Descricao = "Vença um julgamento no Tribunal.", BonusPontos = 950 },
+            new AchievementDefinition { Id = "EFICIENCIA_MESTRE", Titulo = "Gestor Eficiente", Descricao = "Feche um expediente com lucro líquido ≥ R$ 500 e zero erros.", BonusPontos = 1100 }
+        };
     }
 }
